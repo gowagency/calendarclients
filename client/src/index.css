@@ -1,0 +1,196 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── GOW AGENCY DESIGN TOKENS ─── */
+:root {
+  /* Brand palette */
+  --gow-black: #0d0d0d;
+  --gow-white: #f5f5f3;
+  --gow-gray-dark: #2a2a2a;
+  --gow-gray-mid: #5c5c5c;
+  --gow-gray-light: #b0b0b0;
+  --gow-gray-frost: #e8e8e5;
+
+  /* Light mode tokens */
+  --bg: #f5f5f3;
+  --bg-secondary: #ebebea;
+  --bg-elevated: rgba(13, 13, 13, 0.04);
+  --bg-elevated-hover: rgba(13, 13, 13, 0.07);
+  --text-primary: #0d0d0d;
+  --text-secondary: #5c5c5c;
+  --text-tertiary: #b0b0b0;
+  --border: rgba(13, 13, 13, 0.08);
+  --border-strong: rgba(13, 13, 13, 0.14);
+
+  /* Social network colors */
+  --instagram: #e1306c;
+  --linkedin: #0a66c2;
+  --substack: #ff6719;
+  --spotify: #1db954;
+  --youtube: #ff0000;
+
+  /* Status colors */
+  --status-nao-iniciado: #b0b0b0;
+  --status-em-andamento: #5c7aff;
+  --status-em-aprovacao: #e5a00d;
+  --status-aprovado: #22c55e;
+  --status-postado: #5c5c5c;
+}
+
+.dark {
+  --bg: #0d0d0d;
+  --bg-secondary: #161616;
+  --bg-elevated: rgba(255, 255, 255, 0.04);
+  --bg-elevated-hover: rgba(255, 255, 255, 0.07);
+  --text-primary: #f5f5f3;
+  --text-secondary: #b0b0b0;
+  --text-tertiary: #5c5c5c;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+}
+
+/* ─── BASE STYLES ─── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+/* ─── TYPOGRAPHY ─── */
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: "DM Sans", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.label {
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+/* ─── LIQUID GLASS CONTAINERS ─── */
+.glass {
+  background: var(--bg-elevated);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.glass-sm {
+  background: var(--bg-elevated);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ─── FOCUS ─── */
+:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 2px;
+}
+
+/* ─── SELECTION ─── */
+::selection {
+  background: rgba(13, 13, 13, 0.12);
+}
+.dark ::selection {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ─── TRANSITIONS ─── */
+button,
+a,
+input,
+select,
+textarea {
+  transition:
+    opacity 0.15s,
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+/* ─── INPUT RESET ─── */
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--border-strong);
+  background: var(--bg-elevated-hover);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ─── DATE INPUT ─── */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.4;
+  cursor: pointer;
+}
+
+/* ─── TAILWIND BASE ─── */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+}
