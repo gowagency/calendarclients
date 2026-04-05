@@ -445,16 +445,21 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
                       <div style={{ fontSize: '0.55rem', color: '#e5a00d', background: 'rgba(229,160,13,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px', marginBottom: '0.25rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{feriado}</div>
                     )}
                     {dayPosts.map(p => {
-                      const network = NETWORK_CONFIG[p.socialNetwork];
+                      const fc = getFormatColor(p.formato, p.socialNetwork);
                       const sc = STATUS_CONFIG[p.status];
+                      const pilarTag = PILARES.find(pl => pl.id === (p as any).pilar);
                       return (
-                        <button key={p.id} onClick={() => onSelectPost(p)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', background: `${network?.color}0d`, border: `1px solid ${network?.color}25`, borderRadius: '6px', padding: '0.3rem 0.4rem', marginBottom: '0.25rem', display: 'block' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', marginBottom: '0.1rem' }}>
-                            {network?.Icon && <network.Icon size={8} style={{ color: network.color, flexShrink: 0 }} />}
-                            <span style={{ fontSize: '0.6rem', fontWeight: 700, color: network?.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{p.formato}</span>
+                        <button key={p.id} onClick={() => onSelectPost(p)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', background: fc.bg, border: `1px solid ${fc.border}`, borderRadius: '6px', padding: '0 0.4rem 0.3rem 0', marginBottom: '0.25rem', display: 'flex', overflow: 'hidden' }}>
+                          {/* color accent bar */}
+                          <div style={{ width: 4, flexShrink: 0, background: fc.color, borderRadius: '6px 0 0 6px', alignSelf: 'stretch', minHeight: '100%' }} />
+                          <div style={{ flex: 1, minWidth: 0, paddingLeft: '0.35rem', paddingTop: '0.3rem' }}>
+                            <span style={{ fontSize: '0.6rem', fontWeight: 700, color: fc.color, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>{p.formato}</span>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-primary)', lineHeight: 1.2, fontWeight: 500 }}>{p.titulo.length > 30 ? p.titulo.slice(0, 30) + '…' : p.titulo}</div>
+                            <div style={{ marginTop: '0.15rem', display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+                              {pilarTag && <span style={{ fontSize: '0.52rem', fontWeight: 700, color: pilarTag.color, background: `${pilarTag.color}15`, border: `1px solid ${pilarTag.color}30`, padding: '0.05rem 0.3rem', borderRadius: '20px', whiteSpace: 'nowrap' }}>{pilarTag.label}</span>}
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.55rem', color: sc.color }}>{sc.icon} <span>{sc.label}</span></span>
+                            </div>
                           </div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-primary)', lineHeight: 1.2, fontWeight: 500 }}>{p.titulo.length > 30 ? p.titulo.slice(0, 30) + '…' : p.titulo}</div>
-                          <div style={{ marginTop: '0.15rem', display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.55rem', color: sc.color }}>{sc.icon} <span>{sc.label}</span></div>
                         </button>
                       );
                     })}

@@ -165,10 +165,15 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Escreva
           color: var(--text-secondary);
           font-style: italic;
         }
-        [contenteditable] ul, [contenteditable] ol {
-          padding-left: 1.4rem; margin: 0.35rem 0;
+        [contenteditable] ul {
+          list-style-type: disc !important; padding-left: 1.6rem !important; margin: 0.35rem 0;
         }
-        [contenteditable] li { margin: 0.15rem 0; }
+        [contenteditable] ol {
+          list-style-type: decimal !important; padding-left: 1.6rem !important; margin: 0.35rem 0;
+        }
+        [contenteditable] ul ul { list-style-type: circle !important; }
+        [contenteditable] ul ul ul { list-style-type: square !important; }
+        [contenteditable] li { margin: 0.15rem 0; display: list-item !important; list-style-position: outside !important; }
         [contenteditable] p { margin: 0.25rem 0; }
         [contenteditable] b, [contenteditable] strong { font-weight: 700; }
         [contenteditable] i, [contenteditable] em { font-style: italic; }
