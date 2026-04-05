@@ -14,15 +14,15 @@
   --gow-gray-frost: #e8e8e5;
 
   /* Light mode tokens */
-  --bg: #f5f5f3;
-  --bg-secondary: #ebebea;
-  --bg-elevated: rgba(13, 13, 13, 0.04);
-  --bg-elevated-hover: rgba(13, 13, 13, 0.07);
+  --bg: #f0f0ee;
+  --bg-secondary: #e5e5e3;
+  --bg-elevated: #ffffff;
+  --bg-elevated-hover: #f7f7f5;
   --text-primary: #0d0d0d;
   --text-secondary: #5c5c5c;
-  --text-tertiary: #b0b0b0;
-  --border: rgba(13, 13, 13, 0.08);
-  --border-strong: rgba(13, 13, 13, 0.14);
+  --text-tertiary: #a0a0a0;
+  --border: rgba(13, 13, 13, 0.12);
+  --border-strong: rgba(13, 13, 13, 0.22);
 
   /* Social network colors */
   --instagram: #e1306c;
@@ -103,6 +103,7 @@ h5 {
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border);
   border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .glass-sm {
@@ -111,6 +112,7 @@ h5 {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border);
   border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 /* ─── SCROLLBAR ─── */
