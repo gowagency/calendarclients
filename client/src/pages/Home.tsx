@@ -460,8 +460,17 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost }: { posts: P
 // ─── QUICK BLOCK ──────────────────────────────────────────────────────────────
 
 type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'em_aprovacao' | 'aprovado' | 'em_gravacao' | 'gravado' | 'postado';
-type ProdItem   = { text: string; status: ProdStatus; obs: string };
-type ProdData   = { reels: ProdItem; narracao: ProdItem; carrossel: ProdItem };
+type ProdType   = 'reels' | 'narracao' | 'carrossel';
+
+type ProdTask = {
+  id: string;
+  type: ProdType;
+  title: string;
+  status: ProdStatus;
+  dueDate: string;   // 'YYYY-MM-DD'
+  obs: string;
+  createdAt: number;
+};
 
 // Pill style: subtle fill + tinted border + colored text
 const PROD_STATUS_CONFIG: Record<ProdStatus, { label: string; bg: string; border: string; color: string }> = {
@@ -474,110 +483,231 @@ const PROD_STATUS_CONFIG: Record<ProdStatus, { label: string; bg: string; border
   postado:      { label: 'Postado',      bg: 'rgba(29,158,117,0.12)',  border: 'rgba(29,158,117,0.25)',  color: '#1D9E75' },
 };
 
-// Ordered for display
 const PROD_STATUS_ORDER: ProdStatus[] = [
   'nao_iniciado', 'em_andamento', 'em_aprovacao', 'aprovado', 'em_gravacao', 'gravado', 'postado',
 ];
 
-const EMPTY_PROD: ProdItem = { text: '', status: 'nao_iniciado', obs: '' };
-const DEFAULT_PROD: ProdData = { reels: { ...EMPTY_PROD }, narracao: { ...EMPTY_PROD }, carrossel: { ...EMPTY_PROD } };
+const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
+  reels:     { label: 'Reels',     color: '#D85A30' },
+  narracao:  { label: 'Narração',  color: '#378ADD' },
+  carrossel: { label: 'Carrossel', color: '#A0845C' },
+};
+
+const EMPTY_TASK: Omit<ProdTask, 'id' | 'createdAt'> = {
+  type: 'reels', title: '', status: 'nao_iniciado', dueDate: '', obs: '',
+};
 
 function QuickBlock({ client }: { client: string }) {
-  const key  = (t: string) => `gow_${client}_${t}`;
-  const load = <T,>(t: string, def: T): T => { try { return JSON.parse(localStorage.getItem(key(t)) || '') } catch { return def; } };
-  const save = (t: string, v: any) => localStorage.setItem(key(t), JSON.stringify(v));
+  const lsKey = (t: string) => `gow_${client}_${t}`;
+  const load  = <T,>(t: string, def: T): T => { try { return JSON.parse(localStorage.getItem(lsKey(t)) || '') } catch { return def; } };
+  const save  = (t: string, v: any) => localStorage.setItem(lsKey(t), JSON.stringify(v));
 
-  const [prod,    setProd]    = useState<ProdData>(() => load('prod', DEFAULT_PROD));
-  const [prodTab, setProdTab] = useState<keyof ProdData>('reels');
+  const [tasks,      setTasks]      = useState<ProdTask[]>(() => load('prodTasks', []));
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [adding,     setAdding]     = useState(false);
+  const [newTask,    setNewTask]     = useState({ ...EMPTY_TASK });
 
-  const updateProd = (field: keyof ProdItem, value: string) => {
-    const updated = { ...prod, [prodTab]: { ...prod[prodTab], [field]: value } };
-    setProd(updated); save('prod', updated);
+  const persist = (updated: ProdTask[]) => { setTasks(updated); save('prodTasks', updated); };
+
+  const addTask = () => {
+    if (!newTask.title.trim()) return;
+    const t: ProdTask = { ...newTask, id: Date.now().toString(), createdAt: Date.now() };
+    persist([...tasks, t]);
+    setNewTask({ ...EMPTY_TASK });
+    setAdding(false);
   };
 
-  const prodTabs: { id: keyof ProdData; label: string }[] = [
-    { id: 'reels',     label: 'Reels'     },
-    { id: 'narracao',  label: 'Narração'  },
-    { id: 'carrossel', label: 'Carrossel' },
-  ];
+  const updateTask = (id: string, field: keyof ProdTask, value: string) => {
+    persist(tasks.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
 
-  const current = prod[prodTab];
-  const sc = PROD_STATUS_CONFIG[current.status];
+  const deleteTask = (id: string) => persist(tasks.filter(t => t.id !== id));
+
+  // Sort: tasks without date at bottom, others by date asc
+  const sorted = [...tasks].sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0;
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return a.dueDate.localeCompare(b.dueDate);
+  });
+
+  const fmtDate = (d: string) => {
+    if (!d) return '';
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  };
+
+  const isOverdue = (d: string, status: ProdStatus) => {
+    if (!d || status === 'postado' || status === 'gravado') return false;
+    return d < new Date().toISOString().slice(0, 10);
+  };
 
   return (
     <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
 
       {/* Header */}
-      <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>Produção</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <span className="label">Produção</span>
+          {tasks.length > 0 && (
+            <span style={{ fontSize: '0.65rem', background: 'var(--bg-secondary)', borderRadius: '10px', padding: '0.1rem 0.45rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              {tasks.length}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => { setAdding(a => !a); setNewTask({ ...EMPTY_TASK }); }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', background: adding ? 'var(--bg-secondary)' : 'var(--text-primary)', color: adding ? 'var(--text-secondary)' : 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, transition: 'all 0.15s' }}
+        >
+          {adding ? '✕ Cancelar' : '+ Nova tarefa'}
+        </button>
       </div>
 
-      {/* Sub-tabs: Reels / Narração / Carrossel */}
-      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-        {prodTabs.map(t => {
-          const st = PROD_STATUS_CONFIG[prod[t.id].status];
-          const isActive = prodTab === t.id;
-          return (
-            <button key={t.id} onClick={() => setProdTab(t.id)} style={{ padding: '0.4rem 0.9rem', borderRadius: '8px', cursor: 'pointer', border: isActive ? `1.5px solid ${st.border}` : '1px solid var(--border)', background: isActive ? st.bg : 'var(--bg-elevated)', color: isActive ? st.color : 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: isActive ? 600 : 400, transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {t.label}
-              {/* pill badge showing current status abbreviation */}
-              <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: st.bg, border: `1px solid ${st.border}`, color: st.color, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                {PROD_STATUS_CONFIG[prod[t.id].status].label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* ── ADD FORM ── */}
+      {adding && (
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {/* Type + Date row */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+              <button
+                key={k}
+                onClick={() => setNewTask(f => ({ ...f, type: k }))}
+                style={{ padding: '3px 10px', borderRadius: '100px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', border: newTask.type === k ? `1px solid ${v.color}44` : '1px solid var(--border)', background: newTask.type === k ? `${v.color}18` : 'transparent', color: newTask.type === k ? v.color : 'var(--text-tertiary)', transition: 'all 0.15s' }}
+              >
+                {v.label}
+              </button>
+            ))}
+            <input
+              type="date"
+              value={newTask.dueDate}
+              onChange={e => setNewTask(f => ({ ...f, dueDate: e.target.value }))}
+              style={{ marginLeft: 'auto', fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+            />
+          </div>
+          {/* Title */}
+          <input
+            type="text"
+            placeholder="Nome da tarefa..."
+            value={newTask.title}
+            onChange={e => setNewTask(f => ({ ...f, title: e.target.value }))}
+            onKeyDown={e => e.key === 'Enter' && addTask()}
+            autoFocus
+            style={{ width: '100%', fontSize: '0.875rem' }}
+          />
+          {/* Status pills */}
+          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+            {PROD_STATUS_ORDER.map(k => {
+              const v = PROD_STATUS_CONFIG[k];
+              const active = newTask.status === k;
+              return (
+                <button key={k} onClick={() => setNewTask(f => ({ ...f, status: k }))} style={{ padding: '3px 10px', borderRadius: '100px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', border: `1px solid ${active ? v.border : 'rgba(0,0,0,0.08)'}`, background: active ? v.bg : 'transparent', color: active ? v.color : 'var(--text-tertiary)', opacity: active ? 1 : 0.55, transition: 'all 0.15s' }}>
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
+          {/* Obs */}
+          <textarea rows={2} placeholder="Observação (opcional)..." value={newTask.obs} onChange={e => setNewTask(f => ({ ...f, obs: e.target.value }))} style={{ width: '100%', fontSize: '0.82rem', resize: 'none' }} />
+          {/* Save */}
+          <button onClick={addTask} style={{ alignSelf: 'flex-end', padding: '0.45rem 1.25rem', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
+            Adicionar
+          </button>
+        </div>
+      )}
 
-      {/* Status pills */}
-      <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-        {PROD_STATUS_ORDER.map(k => {
-          const v = PROD_STATUS_CONFIG[k];
-          const isActive = current.status === k;
+      {/* ── TASK LIST ── */}
+      {sorted.length === 0 && !adding && (
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1.5rem 0' }}>
+          Nenhuma tarefa. Clique em "+ Nova tarefa" para começar.
+        </p>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        {sorted.map(task => {
+          const sc   = PROD_STATUS_CONFIG[task.status];
+          const tc   = PROD_TYPE_CONFIG[task.type];
+          const open = expandedId === task.id;
+          const over = isOverdue(task.dueDate, task.status);
+
           return (
-            <button
-              key={k}
-              onClick={() => updateProd('status', k)}
-              style={{
-                padding: '3px 10px',
-                borderRadius: '100px',
-                cursor: 'pointer',
-                border: `1px solid ${isActive ? v.border : 'rgba(0,0,0,0.1)'}`,
-                background: isActive ? v.bg : 'transparent',
-                color: isActive ? v.color : 'var(--text-tertiary)',
-                fontSize: '11px',
-                fontWeight: 600,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                transition: 'all 0.15s',
-                opacity: isActive ? 1 : 0.6,
-              }}
+            <div
+              key={task.id}
+              style={{ background: 'var(--bg-elevated)', border: `1px solid ${open ? sc.border : 'var(--border)'}`, borderRadius: '10px', overflow: 'hidden', transition: 'border-color 0.15s' }}
             >
-              {v.label}
-            </button>
+              {/* Row */}
+              <div
+                onClick={() => setExpandedId(open ? null : task.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.85rem', cursor: 'pointer', userSelect: 'none' }}
+              >
+                {/* Type pill */}
+                <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: `${tc.color}18`, border: `1px solid ${tc.color}40`, color: tc.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  {tc.label}
+                </span>
+
+                {/* Title */}
+                <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {task.title}
+                </span>
+
+                {/* Date */}
+                {task.dueDate && (
+                  <span style={{ fontSize: '0.75rem', color: over ? '#D85A30' : 'var(--text-tertiary)', fontWeight: over ? 600 : 400, flexShrink: 0 }}>
+                    {over ? '⚠ ' : ''}{fmtDate(task.dueDate)}
+                  </span>
+                )}
+
+                {/* Status pill */}
+                <span style={{ fontSize: '10px', padding: '2px 9px', borderRadius: '100px', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  {sc.label}
+                </span>
+
+                {/* Chevron */}
+                <span style={{ color: 'var(--text-tertiary)', fontSize: '0.7rem', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+              </div>
+
+              {/* Expanded editing */}
+              {open && (
+                <div style={{ padding: '0 0.85rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', borderTop: '1px solid var(--border)' }}>
+                  {/* Type + Date */}
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '0.65rem', alignItems: 'center' }}>
+                    {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+                      <button key={k} onClick={() => updateTask(task.id, 'type', k)} style={{ padding: '3px 9px', borderRadius: '100px', cursor: 'pointer', fontSize: '10px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', border: task.type === k ? `1px solid ${v.color}44` : '1px solid var(--border)', background: task.type === k ? `${v.color}18` : 'transparent', color: task.type === k ? v.color : 'var(--text-tertiary)', transition: 'all 0.15s' }}>
+                        {v.label}
+                      </button>
+                    ))}
+                    <input type="date" value={task.dueDate} onChange={e => updateTask(task.id, 'dueDate', e.target.value)} style={{ marginLeft: 'auto', fontSize: '0.78rem', padding: '0.2rem 0.45rem' }} />
+                  </div>
+
+                  {/* Title edit */}
+                  <input type="text" value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)} style={{ width: '100%', fontSize: '0.875rem' }} />
+
+                  {/* Status pills */}
+                  <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                    {PROD_STATUS_ORDER.map(k => {
+                      const v = PROD_STATUS_CONFIG[k];
+                      const active = task.status === k;
+                      return (
+                        <button key={k} onClick={() => updateTask(task.id, 'status', k)} style={{ padding: '3px 10px', borderRadius: '100px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', border: `1px solid ${active ? v.border : 'rgba(0,0,0,0.08)'}`, background: active ? v.bg : 'transparent', color: active ? v.color : 'var(--text-tertiary)', opacity: active ? 1 : 0.55, transition: 'all 0.15s' }}>
+                          {v.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Obs */}
+                  <textarea rows={2} placeholder="Observação..." value={task.obs} onChange={e => updateTask(task.id, 'obs', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', resize: 'none' }} />
+
+                  {/* Delete */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={() => deleteTask(task.id)} style={{ padding: '0.3rem 0.75rem', background: 'none', border: '1px solid rgba(216,90,48,0.3)', borderRadius: '7px', cursor: 'pointer', fontSize: '0.75rem', color: '#D85A30', fontWeight: 500 }}>
+                      Remover tarefa
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           );
         })}
-      </div>
-
-      {/* Text editor — border/bg tinted by current status */}
-      <textarea
-        rows={8}
-        placeholder={`Cole ou escreva o texto para ${prodTab === 'reels' ? 'Reels' : prodTab === 'narracao' ? 'Narração' : 'Carrossel'}...`}
-        value={current.text}
-        onChange={e => updateProd('text', e.target.value)}
-        style={{ width: '100%', fontSize: '0.875rem', resize: 'vertical', lineHeight: 1.7, padding: '0.75rem', borderRadius: '10px', border: `1.5px solid ${sc.border}`, background: sc.bg, color: 'var(--text-primary)', fontFamily: 'inherit' }}
-      />
-
-      {/* Observação */}
-      <div style={{ marginTop: '0.75rem' }}>
-        <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Observação</span>
-        <textarea
-          rows={2}
-          placeholder="Observação ou feedback..."
-          value={current.obs}
-          onChange={e => updateProd('obs', e.target.value)}
-          style={{ width: '100%', fontSize: '0.82rem', resize: 'none', lineHeight: 1.6 }}
-        />
       </div>
     </div>
   );
