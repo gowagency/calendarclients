@@ -26,7 +26,7 @@ const CLIENT_LABELS: Record<ClientSlug, string> = {
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
-type View = 'calendario' | 'agendados' | 'postados';
+type View = 'calendario' | 'agendados' | 'postados' | 'em_andamento';
 type NetworkId = typeof NETWORKS[number]['id'];
 
 // ─── NEW POST MODAL ────────────────────────────────────────────────────────────
@@ -874,8 +874,9 @@ export default function Home({ client }: { client: ClientSlug }) {
   }, [networkPosts]);
 
   // Views split
-  const postados  = useMemo(() => filteredPosts.filter(p => p.status === 'postado').sort((a, b) => (b.scheduledDate || 0) - (a.scheduledDate || 0)), [filteredPosts]);
-  const agendados = useMemo(() => filteredPosts.filter(p => p.scheduledDate && p.status !== 'postado').sort((a, b) => (a.scheduledDate || 0) - (b.scheduledDate || 0)), [filteredPosts]);
+  const postados     = useMemo(() => filteredPosts.filter(p => p.status === 'postado').sort((a, b) => (b.scheduledDate || 0) - (a.scheduledDate || 0)), [filteredPosts]);
+  const agendados    = useMemo(() => filteredPosts.filter(p => p.scheduledDate && p.status !== 'postado').sort((a, b) => (a.scheduledDate || 0) - (b.scheduledDate || 0)), [filteredPosts]);
+  const emAndamento  = useMemo(() => filteredPosts.filter(p => p.status === 'em_andamento' || p.status === 'em_aprovacao').sort((a, b) => (a.scheduledDate || 0) - (b.scheduledDate || 0)), [filteredPosts]);
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -1020,30 +1021,39 @@ export default function Home({ client }: { client: ClientSlug }) {
         {/* ═══ STATS + PROGRESS ═══ */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', marginBottom: '1.25rem' }}>
 
-          {/* Stat cards */}
-          {[
-            { label: 'Total', value: stats.total, icon: <LayoutGrid size={15} />, color: 'var(--text-secondary)' },
-            { label: 'Realizadas', value: stats.postado, icon: <CheckCircle2 size={15} />, color: '#22c55e' },
-            { label: 'Agendadas', value: stats.agendado, icon: <CalendarDays size={15} />, color: '#5c7aff' },
-            { label: 'Em andamento', value: stats.em_andamento + stats.em_aprovacao, icon: <TrendingUp size={15} />, color: '#e5a00d' },
-          ].map(({ label, value, icon, color }) => (
-            <div
-              key={label}
-              className="glass-sm"
-              style={{ padding: '1rem 1.25rem' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span className="label">{label}</span>
-                <span style={{ color, opacity: 0.7 }}>{icon}</span>
-              </div>
-              <span style={{
-                fontFamily: 'DM Sans, system-ui', fontSize: '2rem', fontWeight: 300,
-                color: 'var(--text-primary)', letterSpacing: '-0.02em',
-              }}>
-                {value}
-              </span>
-            </div>
-          ))}
+          {/* Stat cards — clickable to switch view */}
+          {([
+            { label: 'Total',         value: stats.total,                                    icon: <LayoutGrid size={15} />,   color: 'var(--text-secondary)', view: 'calendario'   as View },
+            { label: 'Realizadas',    value: stats.postado,                                  icon: <CheckCircle2 size={15} />, color: '#22c55e',               view: 'postados'     as View },
+            { label: 'Agendadas',     value: stats.agendado,                                 icon: <CalendarDays size={15} />, color: '#5c7aff',               view: 'agendados'    as View },
+            { label: 'Em andamento',  value: stats.em_andamento + stats.em_aprovacao,        icon: <TrendingUp size={15} />,   color: '#e5a00d',               view: 'em_andamento' as View },
+          ] as const).map(({ label, value, icon, color, view }) => {
+            const isActive = activeView === view;
+            return (
+              <button
+                key={label}
+                onClick={() => setActiveView(view)}
+                className="glass-sm"
+                style={{
+                  padding: '1rem 1.25rem', textAlign: 'left', cursor: 'pointer',
+                  border: isActive ? `1.5px solid ${color}` : undefined,
+                  background: isActive ? `${color === 'var(--text-secondary)' ? 'var(--bg-elevated)' : color + '08'}` : undefined,
+                  outline: 'none', transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span className="label" style={{ color: isActive ? color : undefined }}>{label}</span>
+                  <span style={{ color, opacity: isActive ? 1 : 0.7 }}>{icon}</span>
+                </div>
+                <span style={{
+                  fontFamily: 'DM Sans, system-ui', fontSize: '2rem', fontWeight: 300,
+                  color: isActive ? color : 'var(--text-primary)', letterSpacing: '-0.02em',
+                }}>
+                  {value}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Meta de dias úteis */}
@@ -1110,32 +1120,6 @@ export default function Home({ client }: { client: ClientSlug }) {
           );
         })()}
 
-        {/* ═══ VIEW TABS ═══ */}
-        <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.25rem', background: 'var(--bg-elevated)', borderRadius: '10px', padding: '0.25rem' }}>
-          {([
-            { id: 'calendario' as View, label: 'Calendário',              icon: <CalendarDays size={14} /> },
-            { id: 'agendados'  as View, label: `Agendados (${agendados.length})`,  icon: <Clock3 size={14} /> },
-            { id: 'postados'   as View, label: `Postados (${postados.length})`,    icon: <CheckCircle2 size={14} /> },
-          ]).map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveView(tab.id)}
-              style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                padding: '0.55rem 0.75rem', borderRadius: '8px', cursor: 'pointer', border: 'none',
-                background: activeView === tab.id ? 'var(--bg)' : 'transparent',
-                color: activeView === tab.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                fontSize: '0.82rem', fontWeight: activeView === tab.id ? 600 : 400,
-                transition: 'all 0.15s', whiteSpace: 'nowrap',
-                boxShadow: activeView === tab.id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              }}
-            >
-              {tab.icon}
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-
         {/* ═══ VIEWS ═══ */}
         <AnimatePresence mode="wait">
           {activeView === 'calendario' && (
@@ -1198,6 +1182,30 @@ export default function Home({ client }: { client: ClientSlug }) {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {postados.map(p => (
+                    <PostCard key={p.id} post={p} onClick={() => setSelectedPost(p)} />
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeView === 'em_andamento' && (
+            <motion.div
+              key="em_andamento"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {emAndamento.length === 0 ? (
+                <EmptyState
+                  icon={<TrendingUp size={28} style={{ color: 'var(--text-tertiary)' }} />}
+                  title="Nenhum post em andamento"
+                  desc="Posts com status Em andamento ou Em aprovação aparecerão aqui."
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {emAndamento.map(p => (
                     <PostCard key={p.id} post={p} onClick={() => setSelectedPost(p)} />
                   ))}
                 </div>
