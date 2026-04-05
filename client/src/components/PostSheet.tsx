@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import type { Post, Comment, Attachment } from '@shared/types';
 import { NETWORK_CONFIG, STATUS_CONFIG, FORMAT_OPTIONS } from '@/lib/config';
+import RichTextEditor from '@/components/RichTextEditor';
 
 interface PostSheetProps {
   post: Post | null;
@@ -307,27 +308,25 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                   />
                 </div>
 
-                {/* Conteúdo */}
+                {/* Conteúdo / Copy */}
                 <div>
                   <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Copy</span>
-                  <textarea
-                    rows={3}
-                    placeholder="Escreva o copy do post..."
+                  <RichTextEditor
                     value={editingPost.conteudo || ''}
-                    onChange={e => updateField('conteudo', e.target.value)}
-                    style={{ width: '100%', fontSize: '0.85rem', resize: 'vertical' }}
+                    onChange={v => updateField('conteudo', v)}
+                    placeholder="Escreva o copy do post..."
+                    minHeight={100}
                   />
                 </div>
 
                 {/* Legenda */}
                 <div>
                   <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Legenda / Caption</span>
-                  <textarea
-                    rows={4}
-                    placeholder="Escreva a legenda do post..."
+                  <RichTextEditor
                     value={editingPost.legenda || ''}
-                    onChange={e => updateField('legenda', e.target.value)}
-                    style={{ width: '100%', fontSize: '0.85rem', resize: 'vertical' }}
+                    onChange={v => updateField('legenda', v)}
+                    placeholder="Escreva a legenda do post..."
+                    minHeight={120}
                   />
                 </div>
 

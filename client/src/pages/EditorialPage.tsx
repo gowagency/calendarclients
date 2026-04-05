@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import RichTextEditor from '@/components/RichTextEditor';
 
 // ─── TOGGLE SECTION ────────────────────────────────────────────────────────────
 
 function ToggleSection({ title, storageKey, placeholder }: { title: string; storageKey: string; placeholder: string }) {
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState(() => localStorage.getItem(storageKey) || '');
+  const [html, setHtml] = useState(() => localStorage.getItem(storageKey) || '');
 
   const handleChange = (val: string) => {
-    setText(val);
+    setHtml(val);
     localStorage.setItem(storageKey, val);
   };
+
+  // Strip tags to check if actually filled
+  const hasContent = html.replace(/<[^>]*>/g, '').trim().length > 0;
 
   return (
     <div style={{ borderBottom: '1px solid var(--border)' }}>
@@ -28,7 +32,7 @@ function ToggleSection({ title, storageKey, placeholder }: { title: string; stor
         <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'DM Sans, system-ui' }}>
           {title}
         </span>
-        {text.trim() && (
+        {hasContent && (
           <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', padding: '0.1rem 0.4rem' }}>
             preenchido
           </span>
@@ -36,17 +40,11 @@ function ToggleSection({ title, storageKey, placeholder }: { title: string; stor
       </button>
       {open && (
         <div style={{ paddingBottom: '1rem' }}>
-          <textarea
-            rows={6}
+          <RichTextEditor
+            value={html}
+            onChange={handleChange}
             placeholder={placeholder}
-            value={text}
-            onChange={e => handleChange(e.target.value)}
-            style={{
-              width: '100%', fontSize: '0.875rem', resize: 'vertical',
-              lineHeight: 1.7, borderRadius: '10px', padding: '0.75rem',
-              border: '1px solid var(--border)', background: 'var(--bg-elevated)',
-              color: 'var(--text-primary)', fontFamily: 'inherit',
-            }}
+            minHeight={160}
           />
         </div>
       )}
@@ -79,7 +77,6 @@ export function EditorialPage({ client }: { client: string }) {
           Estratégia de conteúdo. Cole ou escreva em cada seção — salva automaticamente.
         </p>
       </div>
-
       <div>
         {sections.map(s => (
           <ToggleSection key={s.key} title={s.title} storageKey={s.key} placeholder={s.placeholder} />
@@ -95,51 +92,15 @@ export function PosicionamentoPage({ client }: { client: string }) {
   const k = (s: string) => `gow_${client}_pos_${s}`;
 
   const sections = [
-    {
-      key: k('manifesto'),
-      title: '1. Manifesto — visão de mundo',
-      placeholder: 'Qual é a visão de mundo que fundamenta tudo? O que você acredita que a maioria não acredita?',
-    },
-    {
-      key: k('narrativa'),
-      title: '2. Narrativa Intelectual — sua filosofia',
-      placeholder: 'Qual é a sua filosofia central? Como você lê o mundo e as pessoas?',
-    },
-    {
-      key: k('identidade'),
-      title: '3. Identidade Pessoal — quem é você',
-      placeholder: 'Quem você é? Sua história, trajetória, o que te forma como pessoa e profissional.',
-    },
-    {
-      key: k('voz'),
-      title: '4. Guia de Voz — como você fala',
-      placeholder: 'Como é sua voz? Palavras que usa, tom, ritmo, o que nunca diz, exemplos de frases.',
-    },
-    {
-      key: k('frameworks'),
-      title: '5. Frameworks — como você comunica',
-      placeholder: 'Quais modelos mentais, estruturas ou métodos você usa para organizar e comunicar ideias?',
-    },
-    {
-      key: k('posicionamento'),
-      title: '6. Posicionamento — seu lugar no mercado',
-      placeholder: 'Onde você se posiciona? Para quem? Contra o quê? O que te diferencia?',
-    },
-    {
-      key: k('teses'),
-      title: '7. Teses Centrais — o que você pensa',
-      placeholder: 'Quais são suas grandes teses? Afirmações corajosas sobre o seu campo.',
-    },
-    {
-      key: k('textos'),
-      title: '8. Textos Autorais — suas obras',
-      placeholder: 'Seus textos mais importantes. Cole aqui os que definem sua escrita e pensamento.',
-    },
-    {
-      key: k('produtos'),
-      title: '9. Arquitetura de Produtos — seu legado',
-      placeholder: 'Quais produtos, serviços ou projetos compõem seu ecossistema e legado?',
-    },
+    { key: k('manifesto'),      title: '1. Manifesto — visão de mundo',         placeholder: 'Qual é a visão de mundo que fundamenta tudo? O que você acredita que a maioria não acredita?' },
+    { key: k('narrativa'),      title: '2. Narrativa Intelectual — sua filosofia', placeholder: 'Qual é a sua filosofia central? Como você lê o mundo e as pessoas?' },
+    { key: k('identidade'),     title: '3. Identidade Pessoal — quem é você',    placeholder: 'Quem você é? Sua história, trajetória, o que te forma como pessoa e profissional.' },
+    { key: k('voz'),            title: '4. Guia de Voz — como você fala',        placeholder: 'Como é sua voz? Palavras que usa, tom, ritmo, o que nunca diz, exemplos de frases.' },
+    { key: k('frameworks'),     title: '5. Frameworks — como você comunica',     placeholder: 'Quais modelos mentais, estruturas ou métodos você usa para organizar e comunicar ideias?' },
+    { key: k('posicionamento'), title: '6. Posicionamento — seu lugar no mercado', placeholder: 'Onde você se posiciona? Para quem? Contra o quê? O que te diferencia?' },
+    { key: k('teses'),          title: '7. Teses Centrais — o que você pensa',   placeholder: 'Quais são suas grandes teses? Afirmações corajosas sobre o seu campo.' },
+    { key: k('textos'),         title: '8. Textos Autorais — suas obras',        placeholder: 'Seus textos mais importantes. Cole aqui os que definem sua escrita e pensamento.' },
+    { key: k('produtos'),       title: '9. Arquitetura de Produtos — seu legado', placeholder: 'Quais produtos, serviços ou projetos compõem seu ecossistema e legado?' },
   ];
 
   return (
@@ -152,7 +113,6 @@ export function PosicionamentoPage({ client }: { client: string }) {
           Direcionamentos estratégicos. Cole ou escreva em cada seção — salva automaticamente.
         </p>
       </div>
-
       <div>
         {sections.map(s => (
           <ToggleSection key={s.key} title={s.title} storageKey={s.key} placeholder={s.placeholder} />

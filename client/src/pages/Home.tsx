@@ -15,6 +15,7 @@ import {
   FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey,
 } from '@/lib/config';
 import { EditorialPage, PosicionamentoPage } from './EditorialPage';
+import RichTextEditor from '@/components/RichTextEditor';
 
 type PageView = 'calendario' | 'editorial' | 'posicionamento';
 
@@ -482,6 +483,7 @@ type ProdTask = {
   status: ProdStatus;
   dueDate: string;   // 'YYYY-MM-DD'
   obs: string;
+  canvaUrl: string;
   createdAt: number;
 };
 
@@ -507,7 +509,7 @@ const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
 };
 
 const EMPTY_TASK: Omit<ProdTask, 'id' | 'createdAt'> = {
-  type: 'reels', title: '', status: 'nao_iniciado', dueDate: '', obs: '',
+  type: 'reels', title: '', status: 'nao_iniciado', dueDate: '', obs: '', canvaUrl: '',
 };
 
 function QuickBlock({ client }: { client: string }) {
@@ -620,7 +622,30 @@ function QuickBlock({ client }: { client: string }) {
             })}
           </div>
           {/* Obs */}
-          <textarea rows={2} placeholder="Observação (opcional)..." value={newTask.obs} onChange={e => setNewTask(f => ({ ...f, obs: e.target.value }))} style={{ width: '100%', fontSize: '0.82rem', resize: 'none' }} />
+          <textarea
+            placeholder="Observação (opcional)..."
+            value={newTask.obs}
+            rows={1}
+            onChange={e => { setNewTask(f => ({ ...f, obs: e.target.value })); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+            onFocus={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+            style={{ width: '100%', fontSize: '0.82rem', resize: 'none', overflow: 'hidden', minHeight: '2.2rem' }}
+          />
+          {/* Canva link */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Link Canva</span>
+            <input
+              type="url"
+              placeholder="https://www.canva.com/..."
+              value={newTask.canvaUrl}
+              onChange={e => setNewTask(f => ({ ...f, canvaUrl: e.target.value }))}
+              style={{ flex: 1, fontSize: '0.8rem' }}
+            />
+            {newTask.canvaUrl && (
+              <a href={newTask.canvaUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#7C5CBF', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', padding: '0.2rem 0.6rem', border: '1px solid rgba(124,92,191,0.3)', borderRadius: '6px', background: 'rgba(124,92,191,0.08)' }}>
+                Abrir ↗
+              </a>
+            )}
+          </div>
           {/* Save */}
           <button onClick={addTask} style={{ alignSelf: 'flex-end', padding: '0.45rem 1.25rem', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
             Adicionar
@@ -676,8 +701,8 @@ function QuickBlock({ client }: { client: string }) {
                       {task.title || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic', fontWeight: 400 }}>Sem título</span>}
                     </span>
                   </div>
-                  {/* Bottom row: status pill + type pill */}
-                  <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                  {/* Bottom row: status pill + type pill + canva badge */}
+                  <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <span style={{
                       fontSize: '10px', padding: '2px 9px', borderRadius: '100px',
                       fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
@@ -692,6 +717,17 @@ function QuickBlock({ client }: { client: string }) {
                     }}>
                       {tc.label}
                     </span>
+                    {task.canvaUrl && (
+                      <a
+                        href={task.canvaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(124,92,191,0.10)', border: '1px solid rgba(124,92,191,0.28)', color: '#7C5CBF', textDecoration: 'none' }}
+                      >
+                        Canva ↗
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -729,7 +765,33 @@ function QuickBlock({ client }: { client: string }) {
                   </div>
 
                   {/* Obs */}
-                  <textarea rows={2} placeholder="Observação..." value={task.obs} onChange={e => updateTask(task.id, 'obs', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', resize: 'none' }} />
+                  <textarea
+                    placeholder="Observação..."
+                    value={task.obs}
+                    rows={1}
+                    ref={el => {
+                      if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+                    }}
+                    onChange={e => { updateTask(task.id, 'obs', e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+                    style={{ width: '100%', fontSize: '0.82rem', resize: 'none', overflow: 'hidden', minHeight: '2.2rem' }}
+                  />
+
+                  {/* Canva link */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Link Canva</span>
+                    <input
+                      type="url"
+                      placeholder="https://www.canva.com/..."
+                      value={task.canvaUrl || ''}
+                      onChange={e => updateTask(task.id, 'canvaUrl', e.target.value)}
+                      style={{ flex: 1, fontSize: '0.8rem' }}
+                    />
+                    {task.canvaUrl && (
+                      <a href={task.canvaUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#7C5CBF', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', padding: '0.2rem 0.6rem', border: '1px solid rgba(124,92,191,0.3)', borderRadius: '6px', background: 'rgba(124,92,191,0.08)' }}>
+                        Abrir ↗
+                      </a>
+                    )}
+                  </div>
 
                   {/* Delete */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
