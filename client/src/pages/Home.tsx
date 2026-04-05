@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Plus, Search, TrendingUp,
   CalendarDays, CheckCircle2, Clock3,
-  Sun, Moon,
+  Sun, Moon, LayoutGrid,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
@@ -339,7 +339,7 @@ function getMonthWeekdayGrid(year: number, month: number): (Date | null)[][] {
   return weeks;
 }
 
-function CalendarView({ posts, onSelectPost, onNewPost, updatePost }: { posts: Post[]; onSelectPost: (p: Post) => void; onNewPost: () => void; updatePost: any; }) {
+function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSearchChange }: { posts: Post[]; onSelectPost: (p: Post) => void; onNewPost: () => void; updatePost: any; search: string; onSearchChange: (v: string) => void; }) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -369,11 +369,24 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost }: { posts: P
     <div>
       {/* Month nav */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        {/* Left: month navigation */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button onClick={() => navMonth(-1)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}><ChevronLeft size={16} /></button>
-          <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'DM Sans, system-ui', minWidth: '160px', textAlign: 'center' }}>{monthLabel}</span>
+          <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'DM Sans, system-ui', minWidth: '140px', textAlign: 'center' }}>{monthLabel}</span>
           <button onClick={() => navMonth(1)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}><ChevronRight size={16} /></button>
         </div>
+        {/* Center: search */}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 160px', maxWidth: '280px' }}>
+          <Search size={13} style={{ position: 'absolute', left: '0.6rem', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            placeholder="Buscar posts..."
+            value={search}
+            onChange={e => onSearchChange(e.target.value)}
+            style={{ width: '100%', paddingLeft: '1.85rem', paddingRight: '0.75rem', fontSize: '0.82rem' }}
+          />
+        </div>
+        {/* Right: actions */}
         <div style={{ display: 'flex', gap: '0.4rem' }}>
           <button onClick={() => setCurrentMonth(new Date())} style={{ padding: '0.4rem 0.75rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Hoje</button>
           <button onClick={onNewPost} style={{ padding: '0.4rem 0.75rem', background: 'var(--text-primary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--bg)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Plus size={14} /> Novo</button>
@@ -781,110 +794,76 @@ export default function Home({ client }: { client: ClientSlug }) {
       }}>
         <div style={{
           maxWidth: '1280px', margin: '0 auto',
-          padding: '0.75rem 1rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
-          flexWrap: 'wrap',
+          padding: '0 1rem',
+          display: 'flex', alignItems: 'center', gap: '1rem',
+          height: '52px',
         }}>
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Logo + name */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
             <div style={{
-              width: 28, height: 28, borderRadius: '8px',
+              width: 26, height: 26, borderRadius: '7px',
               background: 'var(--text-primary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <CalendarDays size={14} style={{ color: 'var(--bg)' }} />
+              <CalendarDays size={13} style={{ color: 'var(--bg)' }} />
             </div>
             <div>
-              <span style={{
-                fontFamily: 'DM Sans, system-ui', fontSize: '1rem', fontWeight: 600,
-                color: 'var(--text-primary)', letterSpacing: '-0.02em',
-              }}>
+              <span style={{ fontFamily: 'DM Sans, system-ui', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
                 {CLIENT_LABELS[client]}
               </span>
-              <span className="label" style={{ display: 'block', fontSize: '0.55rem', marginTop: '-0.1rem' }}>
-                Calendário editorial · Gow Agency
+              <span className="label" style={{ display: 'block', fontSize: '0.5rem', marginTop: '-0.05rem', letterSpacing: '0.08em' }}>
+                Gow Agency
               </span>
             </div>
           </div>
 
-          {/* Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {/* Search */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Search size={13} style={{ position: 'absolute', left: '0.6rem', color: 'var(--text-tertiary)' }} />
-              <input
-                type="text"
-                placeholder="Buscar posts..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
+          {/* Divider */}
+          <div style={{ width: 1, height: 22, background: 'var(--border)', flexShrink: 0 }} />
+
+          {/* Page tabs — inline in header */}
+          <nav style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: 1, height: '100%' }}>
+            {([
+              { id: 'calendario'     as const, label: 'Calendário'     },
+              { id: 'editorial'      as const, label: 'Linha Editorial' },
+              { id: 'posicionamento' as const, label: 'Posicionamento'  },
+            ] satisfies { id: PageView; label: string }[]).map(p => (
+              <button
+                key={p.id}
+                onClick={() => setPageView(p.id)}
                 style={{
-                  paddingLeft: '1.8rem', paddingRight: '0.75rem',
-                  width: 'min(180px, 120px)', fontSize: '0.82rem',
-                  background: 'var(--bg-elevated)',
+                  padding: '0 1rem',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: pageView === p.id ? '2px solid var(--text-primary)' : '2px solid transparent',
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  fontWeight: pageView === p.id ? 600 : 400,
+                  color: pageView === p.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  transition: 'all 0.15s',
+                  whiteSpace: 'nowrap',
                 }}
-              />
-            </div>
+              >
+                {p.label}
+              </button>
+            ))}
+          </nav>
 
-            {/* New post */}
-            <button
-              onClick={() => setShowNewPost(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.35rem',
-                padding: '0.45rem 0.9rem', background: 'var(--text-primary)',
-                color: 'var(--bg)', border: 'none', borderRadius: '8px',
-                cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600,
-              }}
-            >
-              <Plus size={14} />
-              <span className="hidden sm:inline">Novo post</span>
-            </button>
-
-            {/* Theme toggle */}
-            <button
-              onClick={toggleTheme}
-              title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
-              style={{
-                background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                borderRadius: '8px', padding: '0.45rem', cursor: 'pointer',
-                color: 'var(--text-secondary)', display: 'flex',
-              }}
-            >
-              {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
-            </button>
-          </div>
+          {/* Theme toggle — far right */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
+            style={{
+              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              borderRadius: '8px', padding: '0.4rem', cursor: 'pointer',
+              color: 'var(--text-secondary)', display: 'flex', flexShrink: 0,
+            }}
+          >
+            {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+          </button>
         </div>
       </header>
 
       <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem' }}>
-
-        {/* ═══ PAGE NAVIGATION ═══ */}
-        <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0rem' }}>
-          {([
-            { id: 'calendario'     as const, label: 'Calendário'      },
-            { id: 'editorial'      as const, label: 'Linha Editorial'  },
-            { id: 'posicionamento' as const, label: 'Posicionamento'   },
-          ] satisfies { id: PageView; label: string }[]).map(p => (
-            <button
-              key={p.id}
-              onClick={() => setPageView(p.id)}
-              style={{
-                padding: '0.6rem 1.25rem',
-                background: 'transparent',
-                border: 'none',
-                borderBottom: pageView === p.id ? '2px solid var(--text-primary)' : '2px solid transparent',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: pageView === p.id ? 600 : 400,
-                color: pageView === p.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                marginBottom: '-1px',
-                transition: 'all 0.15s',
-                fontFamily: 'DM Sans, system-ui',
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
 
         {pageView === 'calendario' && (
           <>
@@ -1042,6 +1021,8 @@ export default function Home({ client }: { client: ClientSlug }) {
                 onSelectPost={setSelectedPost}
                 onNewPost={() => setShowNewPost(true)}
                 updatePost={updatePost}
+                search={search}
+                onSearchChange={setSearch}
               />
             </motion.div>
           )}
