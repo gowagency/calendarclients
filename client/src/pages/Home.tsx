@@ -511,6 +511,7 @@ type ProdTask = {
   dueDate: string;   // 'YYYY-MM-DD'
   obs: string;
   canvaUrl: string;
+  pilar: string;     // '' = sem pilar
   createdAt: number;
 };
 
@@ -537,7 +538,7 @@ const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
 };
 
 const EMPTY_TASK: Omit<ProdTask, 'id' | 'createdAt'> = {
-  type: 'a_definir', title: '', status: 'nao_iniciado', dueDate: '', obs: '', canvaUrl: '',
+  type: 'a_definir', title: '', status: 'nao_iniciado', dueDate: '', obs: '', canvaUrl: '', pilar: '',
 };
 
 function QuickBlock({ client }: { client: string }) {
@@ -545,10 +546,12 @@ function QuickBlock({ client }: { client: string }) {
   const load  = <T,>(t: string, def: T): T => { try { return JSON.parse(localStorage.getItem(lsKey(t)) || '') } catch { return def; } };
   const save  = (t: string, v: any) => localStorage.setItem(lsKey(t), JSON.stringify(v));
 
-  const [tasks,      setTasks]      = useState<ProdTask[]>(() => load('prodTasks', []));
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [adding,     setAdding]     = useState(false);
-  const [newTask,    setNewTask]     = useState({ ...EMPTY_TASK });
+  const [tasks,       setTasks]      = useState<ProdTask[]>(() => load('prodTasks', []));
+  const [expandedId,  setExpandedId] = useState<string | null>(null);
+  const [adding,      setAdding]     = useState(false);
+  const [newTask,     setNewTask]    = useState({ ...EMPTY_TASK });
+  const [filterPilar, setFilterPilar] = useState('');
+  const [filterType,  setFilterType]  = useState('');
 
   const persist = (updated: ProdTask[]) => { setTasks(updated); save('prodTasks', updated); };
 
@@ -567,12 +570,18 @@ function QuickBlock({ client }: { client: string }) {
   const deleteTask = (id: string) => persist(tasks.filter(t => t.id !== id));
 
   // Sort: tasks without date at bottom, others by date asc
-  const sorted = [...tasks].sort((a, b) => {
-    if (!a.dueDate && !b.dueDate) return 0;
-    if (!a.dueDate) return 1;
-    if (!b.dueDate) return -1;
-    return a.dueDate.localeCompare(b.dueDate);
-  });
+  const sorted = [...tasks]
+    .sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return a.dueDate.localeCompare(b.dueDate);
+    })
+    .filter(t => {
+      if (filterPilar && t.pilar !== filterPilar) return false;
+      if (filterType  && t.type  !== filterType)  return false;
+      return true;
+    });
 
   const fmtDate = (d: string) => {
     if (!d) return '';
@@ -589,12 +598,12 @@ function QuickBlock({ client }: { client: string }) {
     <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <span className="label">Produção</span>
           {tasks.length > 0 && (
             <span style={{ fontSize: '0.65rem', background: 'var(--bg-secondary)', borderRadius: '10px', padding: '0.1rem 0.45rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-              {tasks.length}
+              {sorted.length}{sorted.length !== tasks.length ? `/${tasks.length}` : ''}
             </span>
           )}
         </div>
@@ -605,6 +614,42 @@ function QuickBlock({ client }: { client: string }) {
           {adding ? '✕ Cancelar' : '+ Nova tarefa'}
         </button>
       </div>
+
+      {/* ── FILTROS ── */}
+      {tasks.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+          {/* Filtro por pilar */}
+          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginRight: '0.1rem' }}>Pilar</span>
+            <button
+              onClick={() => setFilterPilar('')}
+              style={{ fontSize: '0.68rem', padding: '0.15rem 0.6rem', borderRadius: '100px', border: filterPilar === '' ? '1.5px solid var(--text-secondary)' : '1px solid var(--border)', background: filterPilar === '' ? 'var(--bg-secondary)' : 'transparent', color: filterPilar === '' ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', fontWeight: filterPilar === '' ? 700 : 400, transition: 'all 0.12s' }}
+            >Todos</button>
+            {PILARES.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setFilterPilar(filterPilar === p.id ? '' : p.id)}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.6rem', borderRadius: '100px', border: filterPilar === p.id ? `1.5px solid ${p.color}` : `1px solid ${p.color}40`, background: filterPilar === p.id ? `${p.color}20` : 'transparent', color: filterPilar === p.id ? p.color : `${p.color}AA`, cursor: 'pointer', fontWeight: filterPilar === p.id ? 700 : 400, transition: 'all 0.12s' }}
+              >{p.label}</button>
+            ))}
+          </div>
+          {/* Filtro por formato */}
+          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginRight: '0.1rem' }}>Formato</span>
+            <button
+              onClick={() => setFilterType('')}
+              style={{ fontSize: '0.68rem', padding: '0.15rem 0.6rem', borderRadius: '100px', border: filterType === '' ? '1.5px solid var(--text-secondary)' : '1px solid var(--border)', background: filterType === '' ? 'var(--bg-secondary)' : 'transparent', color: filterType === '' ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', fontWeight: filterType === '' ? 700 : 400, transition: 'all 0.12s' }}
+            >Todos</button>
+            {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+              <button
+                key={k}
+                onClick={() => setFilterType(filterType === k ? '' : k)}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.6rem', borderRadius: '100px', border: filterType === k ? `1.5px solid ${v.color}` : `1px solid ${v.color}40`, background: filterType === k ? `${v.color}20` : 'transparent', color: filterType === k ? v.color : `${v.color}AA`, cursor: 'pointer', fontWeight: filterType === k ? 700 : 400, transition: 'all 0.12s' }}
+              >{v.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── ADD FORM ── */}
       {adding && (
@@ -619,36 +664,55 @@ function QuickBlock({ client }: { client: string }) {
             autoFocus
             style={{ width: '100%', fontSize: '0.875rem' }}
           />
-          {/* Status + Type selects + Date */}
+          {/* Status + Type + Pilar + Date */}
           {(() => {
-            const sv = PROD_STATUS_CONFIG[newTask.status];
-            const tv = PROD_TYPE_CONFIG[newTask.type];
+            const sv  = PROD_STATUS_CONFIG[newTask.status];
+            const tv  = PROD_TYPE_CONFIG[newTask.type];
+            const pv  = PILARES.find(p => p.id === newTask.pilar);
             return (
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <select
-                  value={newTask.status}
-                  onChange={e => setNewTask(f => ({ ...f, status: e.target.value as ProdStatus }))}
-                  style={{ fontSize: '0.78rem', fontWeight: 700, color: sv.color, background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', letterSpacing: '0.04em' }}
-                >
-                  {PROD_STATUS_ORDER.map(k => (
-                    <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select
+                    value={newTask.status}
+                    onChange={e => setNewTask(f => ({ ...f, status: e.target.value as ProdStatus }))}
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: sv.color, background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                  >
+                    {PROD_STATUS_ORDER.map(k => (
+                      <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={newTask.type}
+                    onChange={e => setNewTask(f => ({ ...f, type: e.target.value as ProdType }))}
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: tv.color, background: `${tv.color}15`, border: `1px solid ${tv.color}35`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                  >
+                    {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={newTask.dueDate}
+                    onChange={e => setNewTask(f => ({ ...f, dueDate: e.target.value }))}
+                    style={{ marginLeft: 'auto', fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                  />
+                </div>
+                {/* Pilares */}
+                <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Pilar:</span>
+                  <button
+                    type="button"
+                    onClick={() => setNewTask(f => ({ ...f, pilar: '' }))}
+                    style={{ fontSize: '0.65rem', padding: '0.1rem 0.5rem', borderRadius: '100px', border: !newTask.pilar ? '1.5px solid var(--text-secondary)' : '1px solid var(--border)', background: !newTask.pilar ? 'var(--bg-secondary)' : 'transparent', color: !newTask.pilar ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', fontWeight: !newTask.pilar ? 700 : 400 }}
+                  >Nenhum</button>
+                  {PILARES.map(p => (
+                    <button
+                      key={p.id} type="button"
+                      onClick={() => setNewTask(f => ({ ...f, pilar: f.pilar === p.id ? '' : p.id }))}
+                      style={{ fontSize: '0.65rem', padding: '0.1rem 0.5rem', borderRadius: '100px', border: newTask.pilar === p.id ? `1.5px solid ${p.color}` : `1px solid ${p.color}40`, background: newTask.pilar === p.id ? `${p.color}20` : 'transparent', color: newTask.pilar === p.id ? p.color : `${p.color}90`, cursor: 'pointer', fontWeight: newTask.pilar === p.id ? 700 : 400 }}
+                    >{p.label}</button>
                   ))}
-                </select>
-                <select
-                  value={newTask.type}
-                  onChange={e => setNewTask(f => ({ ...f, type: e.target.value as ProdType }))}
-                  style={{ fontSize: '0.78rem', fontWeight: 700, color: tv.color, background: `${tv.color}15`, border: `1px solid ${tv.color}35`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', letterSpacing: '0.04em' }}
-                >
-                  {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
-                    <option key={k} value={k}>{v.label}</option>
-                  ))}
-                </select>
-                <input
-                  type="date"
-                  value={newTask.dueDate}
-                  onChange={e => setNewTask(f => ({ ...f, dueDate: e.target.value }))}
-                  style={{ marginLeft: 'auto', fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
-                />
+                </div>
               </div>
             );
           })()}
@@ -730,7 +794,7 @@ function QuickBlock({ client }: { client: string }) {
                       {task.title || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic', fontWeight: 400 }}>Sem título</span>}
                     </span>
                   </div>
-                  {/* Bottom row: status select + type select (styled as pills) + canva badge */}
+                  {/* Bottom row: status + type + pilar tag + canva */}
                   <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <select
                       value={task.status}
@@ -752,6 +816,15 @@ function QuickBlock({ client }: { client: string }) {
                         <option key={k} value={k}>{v.label}</option>
                       ))}
                     </select>
+                    {/* Pilar tag */}
+                    {(() => {
+                      const pilarObj = PILARES.find(p => p.id === task.pilar);
+                      return pilarObj ? (
+                        <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', fontWeight: 600, color: pilarObj.color, background: `${pilarObj.color}18`, border: `1px solid ${pilarObj.color}35`, whiteSpace: 'nowrap' }}>
+                          {pilarObj.label}
+                        </span>
+                      ) : null;
+                    })()}
                     {task.canvaUrl && (
                       <a
                         href={task.canvaUrl}
@@ -777,6 +850,23 @@ function QuickBlock({ client }: { client: string }) {
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.65rem' }}>
                     <input type="text" value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)} style={{ flex: 1, fontSize: '0.875rem' }} />
                     <input type="date" value={task.dueDate} onChange={e => updateTask(task.id, 'dueDate', e.target.value)} style={{ fontSize: '0.78rem', padding: '0.2rem 0.45rem', flexShrink: 0 }} />
+                  </div>
+
+                  {/* Pilar selector */}
+                  <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Pilar:</span>
+                    <button
+                      type="button"
+                      onClick={() => updateTask(task.id, 'pilar', '')}
+                      style={{ fontSize: '0.65rem', padding: '0.1rem 0.5rem', borderRadius: '100px', border: !task.pilar ? '1.5px solid var(--text-secondary)' : '1px solid var(--border)', background: !task.pilar ? 'var(--bg-secondary)' : 'transparent', color: !task.pilar ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', fontWeight: !task.pilar ? 700 : 400 }}
+                    >Nenhum</button>
+                    {PILARES.map(p => (
+                      <button
+                        key={p.id} type="button"
+                        onClick={() => updateTask(task.id, 'pilar', task.pilar === p.id ? '' : p.id)}
+                        style={{ fontSize: '0.65rem', padding: '0.1rem 0.5rem', borderRadius: '100px', border: task.pilar === p.id ? `1.5px solid ${p.color}` : `1px solid ${p.color}40`, background: task.pilar === p.id ? `${p.color}20` : 'transparent', color: task.pilar === p.id ? p.color : `${p.color}90`, cursor: 'pointer', fontWeight: task.pilar === p.id ? 700 : 400 }}
+                      >{p.label}</button>
+                    ))}
                   </div>
 
                   {/* Obs */}
