@@ -19,8 +19,17 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
     // Widen image columns to MEDIUMTEXT (16 MB) so base64 data URLs fit
     await db.execute(sql`ALTER TABLE posts MODIFY COLUMN coverImageUrl MEDIUMTEXT`);
     await db.execute(sql`ALTER TABLE attachments MODIFY COLUMN fileUrl MEDIUMTEXT`);
-    await db.execute(sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS pilar VARCHAR(100)`);
-    console.log("[DB] Column migrations applied");
+    console.log("[DB] Column type migrations applied");
+
+    // Add pilar column — ignore error if it already exists (MySQL error 1060)
+    try {
+      await db.execute(sql`ALTER TABLE posts ADD COLUMN pilar VARCHAR(100)`);
+      console.log("[DB] pilar column added");
+    } catch (e: any) {
+      if (!e.message?.includes("Duplicate column")) {
+        console.warn("[DB] pilar column migration unexpected error:", e.message?.slice(0, 80));
+      }
+    }
   } catch (e) {
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));
   }
