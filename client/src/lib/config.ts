@@ -15,6 +15,11 @@ export const NETWORKS = [
   { id: 'youtube', label: 'YouTube', Icon: Youtube, color: '#FF0000' },
 ] as const;
 
+/** Networks shown in the UI filter — only active ones for the current client setup */
+export const ACTIVE_NETWORKS = NETWORKS.filter(n =>
+  ['all', 'instagram', 'spotify'].includes(n.id)
+);
+
 export const NETWORK_CONFIG: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
   instagram: { label: 'Instagram', color: '#E1306C', Icon: Instagram },
   linkedin: { label: 'LinkedIn', color: '#0A66C2', Icon: Linkedin },
@@ -63,12 +68,36 @@ export const STATUS_ORDER = ['nao_iniciado', 'em_andamento', 'em_aprovacao', 'ap
 // ─── FORMATS ───────────────────────────────────────────────────────────────
 
 export const FORMAT_OPTIONS: Record<string, string[]> = {
-  instagram: ['Post', 'Carrossel', 'Reels', 'Story'],
+  instagram: ['Reels', 'Carrossel', 'Foto', 'Estático', 'Story', 'Post'],
   linkedin: ['Post', 'Artigo', 'Newsletter', 'Evento'],
   substack: ['Newsletter', 'Post'],
   spotify: ['Episódio', 'Trailer'],
   youtube: ['Vídeo', 'Short', 'Live', 'Podcast'],
 };
+
+/**
+ * Color per format — used in calendar cards to visually distinguish content type.
+ * Spotify posts always use spotify green regardless of formato.
+ */
+export const FORMAT_COLOR: Record<string, { color: string; bg: string; border: string }> = {
+  'Reels':    { color: '#E1306C', bg: 'rgba(225,48,108,0.07)',  border: 'rgba(225,48,108,0.22)' },
+  'Carrossel':{ color: '#F59E0B', bg: 'rgba(245,158,11,0.07)',  border: 'rgba(245,158,11,0.22)' },
+  'Foto':     { color: '#06B6D4', bg: 'rgba(6,182,212,0.07)',   border: 'rgba(6,182,212,0.22)'  },
+  'Estático': { color: '#8B5CF6', bg: 'rgba(139,92,246,0.07)', border: 'rgba(139,92,246,0.22)' },
+  'Story':    { color: '#EC4899', bg: 'rgba(236,72,153,0.07)',  border: 'rgba(236,72,153,0.22)' },
+  // legacy "Post" maps to Foto color
+  'Post':     { color: '#06B6D4', bg: 'rgba(6,182,212,0.07)',   border: 'rgba(6,182,212,0.22)'  },
+  // Spotify formats
+  'Episódio': { color: '#1DB954', bg: 'rgba(29,185,84,0.07)',   border: 'rgba(29,185,84,0.22)'  },
+  'Trailer':  { color: '#1DB954', bg: 'rgba(29,185,84,0.07)',   border: 'rgba(29,185,84,0.22)'  },
+  // fallback
+  '_default': { color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border)' },
+};
+
+export function getFormatColor(formato: string, socialNetwork?: string) {
+  if (socialNetwork === 'spotify') return FORMAT_COLOR['Episódio'];
+  return FORMAT_COLOR[formato] ?? FORMAT_COLOR['_default'];
+}
 
 // ─── CALENDAR ──────────────────────────────────────────────────────────────
 

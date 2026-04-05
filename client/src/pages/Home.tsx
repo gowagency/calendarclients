@@ -11,8 +11,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import type { Post, ClientSlug } from '../../../drizzle/schema';
 import PostSheet from '@/components/PostSheet';
 import {
-  NETWORKS, NETWORK_CONFIG, STATUS_CONFIG, STATUS_ORDER,
-  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey,
+  NETWORKS, ACTIVE_NETWORKS, NETWORK_CONFIG, STATUS_CONFIG, STATUS_ORDER,
+  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey, getFormatColor,
 } from '@/lib/config';
 import { EditorialPage, PosicionamentoPage } from './EditorialPage';
 import RichTextEditor from '@/components/RichTextEditor';
@@ -96,7 +96,7 @@ function NewPostModal({
         <div>
           <span className="label" style={{ display: 'block', marginBottom: '0.4rem' }}>Rede social</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            {NETWORKS.filter(n => n.id !== 'all').map(n => {
+            {ACTIVE_NETWORKS.filter(n => n.id !== 'all').map(n => {
               const selected = form.socialNetwork === n.id;
               return (
                 <button
@@ -251,6 +251,7 @@ function NewPostModal({
 function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
   const sc = STATUS_CONFIG[post.status];
   const network = NETWORK_CONFIG[post.socialNetwork];
+  const fc = getFormatColor(post.formato, post.socialNetwork);
 
   return (
     <motion.button
@@ -261,8 +262,8 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
       onClick={onClick}
       style={{
         textAlign: 'left', width: '100%', cursor: 'pointer',
-        background: 'var(--bg-elevated)', borderRadius: '12px',
-        border: '1px solid var(--border)', padding: '0.9rem 1rem',
+        background: fc.bg, borderRadius: '12px',
+        border: `1.5px solid ${fc.border}`, padding: '0.9rem 1rem',
         transition: 'border-color 0.15s, background 0.15s',
       }}
     >
@@ -289,7 +290,8 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
               {network?.label}
             </span>
             <span style={{
-              fontSize: '0.65rem', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)',
+              fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+              color: fc.color, background: `${fc.color}18`, border: `1px solid ${fc.border}`,
               padding: '0.12rem 0.5rem', borderRadius: '20px',
             }}>
               {post.formato}
@@ -964,7 +966,7 @@ export default function Home({ client }: { client: ClientSlug }) {
 
         {/* ═══ NETWORK SELECTOR ═══ */}
         <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
-          {NETWORKS.map(n => {
+          {ACTIVE_NETWORKS.map(n => {
             const active = selectedNetwork === n.id;
             const color = n.id === 'all' ? 'var(--text-secondary)' : n.color;
             return (
@@ -996,6 +998,23 @@ export default function Home({ client }: { client: ClientSlug }) {
               </button>
             );
           })}
+        </div>
+
+        {/* ═══ FORMAT LEGEND ═══ */}
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          {(['Reels','Carrossel','Foto','Estático'] as const).map(f => {
+            const fc = getFormatColor(f);
+            return (
+              <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: fc.color, background: fc.bg, border: `1px solid ${fc.border}`, padding: '0.15rem 0.6rem', borderRadius: '20px' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: fc.color, display: 'inline-block', flexShrink: 0 }} />
+                {f}
+              </span>
+            );
+          })}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#1DB954', background: 'rgba(29,185,84,0.07)', border: '1px solid rgba(29,185,84,0.22)', padding: '0.15rem 0.6rem', borderRadius: '20px' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1DB954', display: 'inline-block', flexShrink: 0 }} />
+            Spotify
+          </span>
         </div>
 
         {/* ═══ STATS + PROGRESS ═══ */}
