@@ -376,7 +376,7 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
           <button onClick={() => navMonth(1)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}><ChevronRight size={16} /></button>
         </div>
         {/* Center: search */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 160px', maxWidth: '280px' }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 120px', maxWidth: '260px', minWidth: '80px' }}>
           <Search size={13} style={{ position: 'absolute', left: '0.6rem', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
           <input
             type="text"
@@ -647,13 +647,32 @@ function QuickBlock({ client }: { client: string }) {
               key={task.id}
               style={{ background: 'var(--bg-elevated)', border: `1px solid ${open ? sc.border : 'var(--border)'}`, borderRadius: '10px', overflow: 'hidden', transition: 'border-color 0.15s' }}
             >
-              {/* Row */}
+              {/* Row — order: Date · Status · Type · Title */}
               <div
                 onClick={() => setExpandedId(open ? null : task.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.85rem', cursor: 'pointer', userSelect: 'none' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', padding: '0.7rem 0.85rem', cursor: 'pointer', userSelect: 'none' }}
               >
+                {/* Date */}
+                <span style={{
+                  fontSize: '0.72rem', fontWeight: 600, flexShrink: 0, minWidth: '70px',
+                  color: over ? '#D85A30' : 'var(--text-secondary)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {task.dueDate ? (over ? '⚠ ' : '') + fmtDate(task.dueDate) : <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>Sem data</span>}
+                </span>
+
+                {/* Status pill — larger, more prominent */}
+                <span style={{
+                  fontSize: '10px', padding: '3px 10px', borderRadius: '100px',
+                  fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+                  background: sc.bg, border: `1.5px solid ${sc.border}`, color: sc.color,
+                  whiteSpace: 'nowrap', flexShrink: 0,
+                }}>
+                  {sc.label}
+                </span>
+
                 {/* Type pill */}
-                <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: `${tc.color}18`, border: `1px solid ${tc.color}40`, color: tc.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '100px', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', background: `${tc.color}15`, border: `1px solid ${tc.color}35`, color: tc.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {tc.label}
                 </span>
 
@@ -662,20 +681,8 @@ function QuickBlock({ client }: { client: string }) {
                   {task.title}
                 </span>
 
-                {/* Date */}
-                {task.dueDate && (
-                  <span style={{ fontSize: '0.75rem', color: over ? '#D85A30' : 'var(--text-tertiary)', fontWeight: over ? 600 : 400, flexShrink: 0 }}>
-                    {over ? '⚠ ' : ''}{fmtDate(task.dueDate)}
-                  </span>
-                )}
-
-                {/* Status pill */}
-                <span style={{ fontSize: '10px', padding: '2px 9px', borderRadius: '100px', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {sc.label}
-                </span>
-
                 {/* Chevron */}
-                <span style={{ color: 'var(--text-tertiary)', fontSize: '0.7rem', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: '0.65rem', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
               </div>
 
               {/* Expanded editing */}
@@ -736,6 +743,7 @@ export default function Home({ client }: { client: ClientSlug }) {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showNewPost, setShowNewPost] = useState(false);
   const [search, setSearch] = useState('');
+  const [progressMonth, setProgressMonth] = useState(() => new Date());
 
   const utils = trpc.useUtils();
   const postsQuery = trpc.posts.list.useQuery({ client });
@@ -795,33 +803,35 @@ export default function Home({ client }: { client: ClientSlug }) {
         <div style={{
           maxWidth: '1280px', margin: '0 auto',
           padding: '0 1rem',
-          display: 'flex', alignItems: 'center', gap: '1rem',
-          height: '52px',
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          height: '56px',
+          minWidth: 0,
         }}>
           {/* Logo + name */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
             <div style={{
-              width: 26, height: 26, borderRadius: '7px',
+              width: 34, height: 34, borderRadius: '9px',
               background: 'var(--text-primary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
             }}>
-              <CalendarDays size={13} style={{ color: 'var(--bg)' }} />
+              <CalendarDays size={16} style={{ color: 'var(--bg)' }} />
             </div>
             <div>
-              <span style={{ fontFamily: 'DM Sans, system-ui', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              <span style={{ fontFamily: 'DM Sans, system-ui', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em', display: 'block', lineHeight: 1.2 }}>
                 {CLIENT_LABELS[client]}
               </span>
-              <span className="label" style={{ display: 'block', fontSize: '0.5rem', marginTop: '-0.05rem', letterSpacing: '0.08em' }}>
+              <span className="label" style={{ display: 'block', fontSize: '0.52rem', letterSpacing: '0.1em' }}>
                 Gow Agency
               </span>
             </div>
           </div>
 
           {/* Divider */}
-          <div style={{ width: 1, height: 22, background: 'var(--border)', flexShrink: 0 }} />
+          <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0, margin: '0 0.25rem' }} />
 
           {/* Page tabs — inline in header */}
-          <nav style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: 1, height: '100%' }}>
+          <nav style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: 1, height: '100%', overflowX: 'auto' }}>
             {([
               { id: 'calendario'     as const, label: 'Calendário'     },
               { id: 'editorial'      as const, label: 'Linha Editorial' },
@@ -831,12 +841,12 @@ export default function Home({ client }: { client: ClientSlug }) {
                 key={p.id}
                 onClick={() => setPageView(p.id)}
                 style={{
-                  padding: '0 1rem',
+                  padding: '0 0.85rem',
                   background: 'transparent',
                   border: 'none',
                   borderBottom: pageView === p.id ? '2px solid var(--text-primary)' : '2px solid transparent',
                   cursor: 'pointer',
-                  fontSize: '0.82rem',
+                  fontSize: '0.78rem',
                   fontWeight: pageView === p.id ? 600 : 400,
                   color: pageView === p.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
                   transition: 'all 0.15s',
@@ -863,7 +873,7 @@ export default function Home({ client }: { client: ClientSlug }) {
         </div>
       </header>
 
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem' }}>
+      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '0.75rem 1rem', overflowX: 'hidden' }}>
 
         {pageView === 'calendario' && (
           <>
@@ -935,45 +945,62 @@ export default function Home({ client }: { client: ClientSlug }) {
 
         {/* Meta de dias úteis */}
         {(() => {
-          const now = new Date();
-          const y = now.getFullYear(); const m = now.getMonth();
+          const y = progressMonth.getFullYear(); const m = progressMonth.getMonth();
           const totalDays = new Date(y, m + 1, 0).getDate();
           let businessDays = 0;
           for (let d = 1; d <= totalDays; d++) {
             const dow = new Date(y, m, d).getDay();
             if (dow >= 1 && dow <= 5) businessDays++;
           }
+          const goal = 22;
           const monthStart = new Date(y, m, 1).getTime();
           const monthEnd = new Date(y, m + 1, 0, 23, 59, 59).getTime();
           const posted = networkPosts.filter(p => p.status === 'postado' && p.scheduledDate && p.scheduledDate >= monthStart && p.scheduledDate <= monthEnd).length;
-          const pct = Math.min((posted / businessDays) * 100, 100);
+          const pct = Math.min((posted / goal) * 100, 100);
           const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+          const navMonth = (dir: number) => {
+            const d = new Date(progressMonth); d.setMonth(d.getMonth() + dir); setProgressMonth(d);
+          };
+          const isCurrentMonth = y === new Date().getFullYear() && m === new Date().getMonth();
           return (
             <div className="glass-sm" style={{ padding: '1.1rem 1.25rem', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', lineHeight: 1.2 }}>
-                    {posted} de {businessDays} posts realizados
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', lineHeight: 1.3 }}>
+                    {posted} de {goal} posts realizados
                   </span>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
-                    Meta: 1 post por dia útil
+                    Objetivo: {goal} postagens · {businessDays} dias úteis
                   </span>
                 </div>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
-                  {monthNames[m]} {y}
-                </span>
+                {/* Month navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <button onClick={() => navMonth(-1)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.25rem 0.4rem', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}>
+                    <ChevronLeft size={13} />
+                  </button>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500, minWidth: '110px', textAlign: 'center' }}>
+                    {monthNames[m]} {y}
+                  </span>
+                  <button onClick={() => navMonth(1)} disabled={isCurrentMonth} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.25rem 0.4rem', cursor: isCurrentMonth ? 'default' : 'pointer', color: isCurrentMonth ? 'var(--border-strong)' : 'var(--text-tertiary)', display: 'flex' }}>
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
               </div>
               <div style={{ position: 'relative', height: '6px', background: 'var(--border-strong)', borderRadius: '6px' }}>
                 <motion.div
+                  key={`${y}-${m}`}
                   initial={{ width: 0 }}
                   animate={{ width: `${pct}%` }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
                   style={{ height: '100%', borderRadius: '6px', position: 'absolute', background: pct >= 100 ? '#22c55e' : pct >= 60 ? '#5c7aff' : '#e5a00d' }}
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-                  {Math.round(pct)}% da meta mensal
+                  {posted === 0 ? 'Nenhum post publicado neste mês' : `${goal - posted > 0 ? `Faltam ${goal - posted} posts` : '🎉 Meta atingida!'}`}
+                </span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                  {Math.round(pct)}%
                 </span>
               </div>
             </div>
@@ -1078,6 +1105,13 @@ export default function Home({ client }: { client: ClientSlug }) {
 
         {/* ═══ BLOCO DE SUPORTE ═══ */}
         <QuickBlock client={client} />
+
+        {/* Footer spacing */}
+        <div style={{ marginTop: '3rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '2rem' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 500 }}>
+            Calendário Editorial · Gow Agency
+          </span>
+        </div>
 
           </>
         )}
