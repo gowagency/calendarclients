@@ -501,7 +501,7 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
 // ─── QUICK BLOCK ──────────────────────────────────────────────────────────────
 
 type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'em_aprovacao' | 'aprovado' | 'em_gravacao' | 'gravado' | 'postado';
-type ProdType   = 'reels' | 'narracao' | 'carrossel';
+type ProdType   = 'reels' | 'narracao' | 'carrossel' | 'a_definir';
 
 type ProdTask = {
   id: string;
@@ -530,13 +530,14 @@ const PROD_STATUS_ORDER: ProdStatus[] = [
 ];
 
 const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
-  reels:     { label: 'Reels',     color: '#7B3A12' }, // chocolate — destaque
-  narracao:  { label: 'Narração',  color: '#8B8177' }, // taupe neutro
-  carrossel: { label: 'Carrossel', color: '#A07848' }, // camel bege
+  reels:     { label: 'Reels',      color: '#7B3A12' }, // chocolate — destaque
+  narracao:  { label: 'Narração',   color: '#8B8177' }, // taupe neutro
+  carrossel: { label: 'Carrossel',  color: '#A07848' }, // camel bege
+  a_definir: { label: 'A Definir',  color: '#A8A09A' }, // cinza neutro
 };
 
 const EMPTY_TASK: Omit<ProdTask, 'id' | 'createdAt'> = {
-  type: 'reels', title: '', status: 'nao_iniciado', dueDate: '', obs: '', canvaUrl: '',
+  type: 'a_definir', title: '', status: 'nao_iniciado', dueDate: '', obs: '', canvaUrl: '',
 };
 
 function QuickBlock({ client }: { client: string }) {
@@ -652,13 +653,11 @@ function QuickBlock({ client }: { client: string }) {
             );
           })()}
           {/* Obs */}
-          <textarea
-            placeholder="Observação (opcional)..."
+          <RichTextEditor
             value={newTask.obs}
-            rows={1}
-            onChange={e => { setNewTask(f => ({ ...f, obs: e.target.value })); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-            onFocus={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-            style={{ width: '100%', fontSize: '0.82rem', resize: 'none', overflow: 'hidden', minHeight: '2.2rem' }}
+            onChange={html => setNewTask(f => ({ ...f, obs: html }))}
+            placeholder="Observação (opcional)..."
+            minHeight={72}
           />
           {/* Canva link */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -725,7 +724,7 @@ function QuickBlock({ client }: { client: string }) {
                       color: over ? '#D85A30' : sc.color,
                       fontVariantNumeric: 'tabular-nums',
                     }}>
-                      {task.dueDate ? (over ? '⚠ ' : '') + fmtDate(task.dueDate) : '—'}
+                      {task.dueDate ? (over ? '⚠ ' : '') + fmtDate(task.dueDate) : 'A Definir'}
                     </span>
                     <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {task.title || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic', fontWeight: 400 }}>Sem título</span>}
@@ -781,15 +780,11 @@ function QuickBlock({ client }: { client: string }) {
                   </div>
 
                   {/* Obs */}
-                  <textarea
-                    placeholder="Observação..."
+                  <RichTextEditor
                     value={task.obs}
-                    rows={1}
-                    ref={el => {
-                      if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
-                    }}
-                    onChange={e => { updateTask(task.id, 'obs', e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-                    style={{ width: '100%', fontSize: '0.82rem', resize: 'none', overflow: 'hidden', minHeight: '2.2rem' }}
+                    onChange={html => updateTask(task.id, 'obs', html)}
+                    placeholder="Observação..."
+                    minHeight={72}
                   />
 
                   {/* Canva link */}
