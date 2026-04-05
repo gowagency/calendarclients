@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Plus, Search, TrendingUp,
@@ -266,6 +266,15 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
         transition: 'border-color 0.15s, background 0.15s',
       }}
     >
+      {/* Cover image thumbnail */}
+      {post.coverImageUrl && (
+        <img
+          src={post.coverImageUrl}
+          alt=""
+          style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.6rem', display: 'block' }}
+          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+      )}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Network + format badges */}
@@ -581,24 +590,6 @@ function QuickBlock({ client }: { client: string }) {
       {/* ── ADD FORM ── */}
       {adding && (
         <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {/* Type + Date row */}
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
-              <button
-                key={k}
-                onClick={() => setNewTask(f => ({ ...f, type: k }))}
-                style={{ padding: '3px 10px', borderRadius: '100px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', border: newTask.type === k ? `1px solid ${v.color}44` : '1px solid var(--border)', background: newTask.type === k ? `${v.color}18` : 'transparent', color: newTask.type === k ? v.color : 'var(--text-tertiary)', transition: 'all 0.15s' }}
-              >
-                {v.label}
-              </button>
-            ))}
-            <input
-              type="date"
-              value={newTask.dueDate}
-              onChange={e => setNewTask(f => ({ ...f, dueDate: e.target.value }))}
-              style={{ marginLeft: 'auto', fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
-            />
-          </div>
           {/* Title */}
           <input
             type="text"
@@ -609,18 +600,39 @@ function QuickBlock({ client }: { client: string }) {
             autoFocus
             style={{ width: '100%', fontSize: '0.875rem' }}
           />
-          {/* Status pills */}
-          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-            {PROD_STATUS_ORDER.map(k => {
-              const v = PROD_STATUS_CONFIG[k];
-              const active = newTask.status === k;
-              return (
-                <button key={k} onClick={() => setNewTask(f => ({ ...f, status: k }))} style={{ padding: '3px 10px', borderRadius: '100px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', border: `1px solid ${active ? v.border : 'rgba(0,0,0,0.08)'}`, background: active ? v.bg : 'transparent', color: active ? v.color : 'var(--text-tertiary)', opacity: active ? 1 : 0.55, transition: 'all 0.15s' }}>
-                  {v.label}
-                </button>
-              );
-            })}
-          </div>
+          {/* Status + Type selects + Date */}
+          {(() => {
+            const sv = PROD_STATUS_CONFIG[newTask.status];
+            const tv = PROD_TYPE_CONFIG[newTask.type];
+            return (
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                  value={newTask.status}
+                  onChange={e => setNewTask(f => ({ ...f, status: e.target.value as ProdStatus }))}
+                  style={{ fontSize: '0.78rem', fontWeight: 700, color: sv.color, background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', letterSpacing: '0.04em' }}
+                >
+                  {PROD_STATUS_ORDER.map(k => (
+                    <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
+                  ))}
+                </select>
+                <select
+                  value={newTask.type}
+                  onChange={e => setNewTask(f => ({ ...f, type: e.target.value as ProdType }))}
+                  style={{ fontSize: '0.78rem', fontWeight: 700, color: tv.color, background: `${tv.color}15`, border: `1px solid ${tv.color}35`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', letterSpacing: '0.04em' }}
+                >
+                  {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+                    <option key={k} value={k}>{v.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  value={newTask.dueDate}
+                  onChange={e => setNewTask(f => ({ ...f, dueDate: e.target.value }))}
+                  style={{ marginLeft: 'auto', fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                />
+              </div>
+            );
+          })()}
           {/* Obs */}
           <textarea
             placeholder="Observação (opcional)..."
@@ -738,31 +750,37 @@ function QuickBlock({ client }: { client: string }) {
               {/* Expanded editing */}
               {open && (
                 <div style={{ padding: '0 0.85rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', borderTop: '1px solid var(--border)' }}>
-                  {/* Type + Date */}
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '0.65rem', alignItems: 'center' }}>
-                    {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
-                      <button key={k} onClick={() => updateTask(task.id, 'type', k)} style={{ padding: '3px 9px', borderRadius: '100px', cursor: 'pointer', fontSize: '10px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', border: task.type === k ? `1px solid ${v.color}44` : '1px solid var(--border)', background: task.type === k ? `${v.color}18` : 'transparent', color: task.type === k ? v.color : 'var(--text-tertiary)', transition: 'all 0.15s' }}>
-                        {v.label}
-                      </button>
-                    ))}
-                    <input type="date" value={task.dueDate} onChange={e => updateTask(task.id, 'dueDate', e.target.value)} style={{ marginLeft: 'auto', fontSize: '0.78rem', padding: '0.2rem 0.45rem' }} />
-                  </div>
-
                   {/* Title edit */}
-                  <input type="text" value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)} style={{ width: '100%', fontSize: '0.875rem' }} />
+                  <input type="text" value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)} style={{ width: '100%', fontSize: '0.875rem', marginTop: '0.65rem' }} />
 
-                  {/* Status pills */}
-                  <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                    {PROD_STATUS_ORDER.map(k => {
-                      const v = PROD_STATUS_CONFIG[k];
-                      const active = task.status === k;
-                      return (
-                        <button key={k} onClick={() => updateTask(task.id, 'status', k)} style={{ padding: '3px 10px', borderRadius: '100px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', border: `1px solid ${active ? v.border : 'rgba(0,0,0,0.08)'}`, background: active ? v.bg : 'transparent', color: active ? v.color : 'var(--text-tertiary)', opacity: active ? 1 : 0.55, transition: 'all 0.15s' }}>
-                          {v.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {/* Status + Type selects + Date — inline row */}
+                  {(() => {
+                    const sv = PROD_STATUS_CONFIG[task.status];
+                    const tv = PROD_TYPE_CONFIG[task.type];
+                    return (
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <select
+                          value={task.status}
+                          onChange={e => updateTask(task.id, 'status', e.target.value)}
+                          style={{ fontSize: '0.78rem', fontWeight: 700, color: sv.color, background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', letterSpacing: '0.04em' }}
+                        >
+                          {PROD_STATUS_ORDER.map(k => (
+                            <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={task.type}
+                          onChange={e => updateTask(task.id, 'type', e.target.value)}
+                          style={{ fontSize: '0.78rem', fontWeight: 700, color: tv.color, background: `${tv.color}15`, border: `1px solid ${tv.color}35`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', letterSpacing: '0.04em' }}
+                        >
+                          {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+                            <option key={k} value={k}>{v.label}</option>
+                          ))}
+                        </select>
+                        <input type="date" value={task.dueDate} onChange={e => updateTask(task.id, 'dueDate', e.target.value)} style={{ marginLeft: 'auto', fontSize: '0.78rem', padding: '0.2rem 0.45rem' }} />
+                      </div>
+                    );
+                  })()}
 
                   {/* Obs */}
                   <textarea
@@ -832,6 +850,16 @@ export default function Home({ client }: { client: ClientSlug }) {
   });
 
   const allPosts: Post[] = (postsQuery.data as Post[]) || [];
+
+  // Keep selectedPost in sync with fresh data (e.g. after cover upload)
+  useEffect(() => {
+    if (selectedPost && allPosts.length > 0) {
+      const fresh = allPosts.find(p => p.id === selectedPost.id);
+      if (fresh && fresh.coverImageUrl !== selectedPost.coverImageUrl) {
+        setSelectedPost(fresh);
+      }
+    }
+  }, [allPosts]);
 
   // Filter by network
   const networkPosts = useMemo(() => {

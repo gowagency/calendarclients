@@ -65,7 +65,13 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
     onSuccess: () => utils.attachments.byPost.invalidate({ postId: post?.id ?? 0 }),
   });
   const uploadCover = trpc.posts.uploadCover.useMutation({
-    onSuccess: () => { utils.posts.invalidate(); toast.success('Capa atualizada'); },
+    onSuccess: (data) => {
+      utils.posts.invalidate();
+      toast.success('Capa atualizada');
+      // Update local state immediately so the image shows without waiting for refetch
+      setEditingPost(prev => prev ? { ...prev, coverImageUrl: data.url } : null);
+    },
+    onError: (err) => toast.error(`Erro ao enviar capa: ${err.message}`),
   });
 
   const handleSave = useCallback(() => {
@@ -205,22 +211,25 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
             <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem' }}>
 
               {/* Cover image */}
-              {post.coverImageUrl && (
+              {editingPost.coverImageUrl && (
                 <img
-                  src={post.coverImageUrl}
-                  alt={post.titulo}
-                  style={{ width: '100%', borderRadius: '10px', marginBottom: '1rem', objectFit: 'cover', maxHeight: '200px' }}
+                  src={editingPost.coverImageUrl}
+                  alt={editingPost.titulo}
+                  style={{ width: '100%', borderRadius: '10px', marginBottom: '0.75rem', objectFit: 'cover', maxHeight: '220px' }}
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               )}
 
               {/* Upload cover */}
               <label style={{
-                display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem',
-                cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: '0.78rem',
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem',
+                cursor: uploadCover.isPending ? 'wait' : 'pointer',
+                color: uploadCover.isPending ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+                fontSize: '0.78rem', opacity: uploadCover.isPending ? 0.6 : 1,
               }}>
                 <Upload size={13} />
-                {post.coverImageUrl ? 'Trocar capa' : 'Adicionar capa'}
-                <input type="file" accept="image/*" style={{ display: 'none' }}
+                {uploadCover.isPending ? 'Enviando...' : editingPost.coverImageUrl ? 'Trocar capa' : 'Adicionar capa'}
+                <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadCover.isPending}
                   onChange={e => e.target.files?.[0] && handleCoverUpload(e.target.files[0])} />
               </label>
 
