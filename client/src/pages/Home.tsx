@@ -645,44 +645,58 @@ function QuickBlock({ client }: { client: string }) {
           return (
             <div
               key={task.id}
-              style={{ background: 'var(--bg-elevated)', border: `1px solid ${open ? sc.border : 'var(--border)'}`, borderRadius: '10px', overflow: 'hidden', transition: 'border-color 0.15s' }}
+              style={{
+                background: open ? sc.bg : `${sc.color}08`,
+                border: `1.5px solid ${open ? sc.border : sc.border}`,
+                borderRadius: '12px',
+                overflow: 'hidden',
+                transition: 'all 0.15s',
+              }}
             >
-              {/* Row — order: Date · Status · Type · Title */}
+              {/* Card row */}
               <div
                 onClick={() => setExpandedId(open ? null : task.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', padding: '0.7rem 0.85rem', cursor: 'pointer', userSelect: 'none' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none' }}
               >
-                {/* Date */}
-                <span style={{
-                  fontSize: '0.72rem', fontWeight: 600, flexShrink: 0, minWidth: '70px',
-                  color: over ? '#D85A30' : 'var(--text-secondary)',
-                  fontVariantNumeric: 'tabular-nums',
-                }}>
-                  {task.dueDate ? (over ? '⚠ ' : '') + fmtDate(task.dueDate) : <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>Sem data</span>}
-                </span>
+                {/* Left: colored status bar accent */}
+                <div style={{ width: 3, height: 36, borderRadius: 4, background: sc.color, flexShrink: 0, opacity: 0.8 }} />
 
-                {/* Status pill — larger, more prominent */}
-                <span style={{
-                  fontSize: '10px', padding: '3px 10px', borderRadius: '100px',
-                  fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-                  background: sc.bg, border: `1.5px solid ${sc.border}`, color: sc.color,
-                  whiteSpace: 'nowrap', flexShrink: 0,
-                }}>
-                  {sc.label}
-                </span>
-
-                {/* Type pill */}
-                <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '100px', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', background: `${tc.color}15`, border: `1px solid ${tc.color}35`, color: tc.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {tc.label}
-                </span>
-
-                {/* Title */}
-                <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {task.title}
-                </span>
+                {/* Main content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Top row: date + title */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.3rem' }}>
+                    <span style={{
+                      fontSize: '0.78rem', fontWeight: 700, flexShrink: 0,
+                      color: over ? '#D85A30' : sc.color,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {task.dueDate ? (over ? '⚠ ' : '') + fmtDate(task.dueDate) : '—'}
+                    </span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {task.title || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic', fontWeight: 400 }}>Sem título</span>}
+                    </span>
+                  </div>
+                  {/* Bottom row: status pill + type pill */}
+                  <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 9px', borderRadius: '100px',
+                      fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+                      background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color,
+                    }}>
+                      {sc.label}
+                    </span>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '100px',
+                      fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
+                      background: `${tc.color}15`, border: `1px solid ${tc.color}35`, color: tc.color,
+                    }}>
+                      {tc.label}
+                    </span>
+                  </div>
+                </div>
 
                 {/* Chevron */}
-                <span style={{ color: 'var(--text-tertiary)', fontSize: '0.65rem', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+                <span style={{ color: sc.color, fontSize: '0.6rem', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}>▼</span>
               </div>
 
               {/* Expanded editing */}
