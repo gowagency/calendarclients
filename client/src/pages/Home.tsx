@@ -523,7 +523,18 @@ function CalendarView({
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-export default function Home({ client }: { client: ClientSlug }) {
+export default function Home({ client }: { client: ClientSlug | null }) {
+  if (!client) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100vh', background: 'var(--bg)',
+        fontFamily: 'DM Sans, system-ui', color: 'var(--text-tertiary)', fontSize: '0.9rem',
+      }}>
+        Domínio não reconhecido.
+      </div>
+    );
+  }
   const { theme, toggleTheme } = useTheme();
   const [activeView, setActiveView] = useState<View>('calendario');
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>('all');

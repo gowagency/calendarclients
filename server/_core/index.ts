@@ -22,14 +22,14 @@ async function findAvailablePort(startPort = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-// Hostname → client path mapping
+// Hostname → client slug mapping
 // Supports: junior.railway.app, aliny.railway.app, junior.gow.agency, aliny.gow.agency
 const HOSTNAME_MAP: Record<string, string> = {
-  junior: "/juniorlopes",
-  aliny: "/alinyrayze",
+  junior: "juniorlopes",
+  aliny: "alinyrayze",
 };
 
-function getClientPathFromHost(hostname: string): string | null {
+function getClientSlugFromHost(hostname: string): string | null {
   const sub = hostname.split(".")[0].toLowerCase();
   return HOSTNAME_MAP[sub] ?? null;
 }
@@ -41,13 +41,19 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // Redirect subdomain root → correct client path
-  app.use((req, res, next) => {
-    const clientPath = getClientPathFromHost(req.hostname);
-    if (clientPath && !req.path.startsWith(clientPath) && !req.path.startsWith("/api")) {
-      return res.redirect(301, clientPath);
+  // Attach client slug to request based on hostname (no redirect)
+  app.use((req, _res, next) => {
+    const slug = getClientSlugFromHost(req.hostname);
+    if (slug) {
+      (req as any).clientSlug = slug;
     }
     next();
+  });
+
+  // Expose resolved client slug to the frontend
+  app.get("/api/client", (req, res) => {
+    const slug = (req as any).clientSlug ?? null;
+    res.json({ client: slug });
   });
 
   app.use(
