@@ -12,7 +12,7 @@ import type { Post, ClientSlug } from '../../../drizzle/schema';
 import PostSheet from '@/components/PostSheet';
 import {
   NETWORKS, ACTIVE_NETWORKS, NETWORK_CONFIG, STATUS_CONFIG, STATUS_ORDER,
-  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey, getFormatColor,
+  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey, getFormatColor, PILARES,
 } from '@/lib/config';
 import { EditorialPage, PosicionamentoPage } from './EditorialPage';
 import RichTextEditor from '@/components/RichTextEditor';
@@ -252,6 +252,7 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
   const sc = STATUS_CONFIG[post.status];
   const network = NETWORK_CONFIG[post.socialNetwork];
   const fc = getFormatColor(post.formato, post.socialNetwork);
+  const pilar = PILARES.find(p => p.id === (post as any).pilar);
 
   return (
     <motion.button
@@ -264,61 +265,77 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
         textAlign: 'left', width: '100%', cursor: 'pointer',
         background: 'var(--bg-elevated)', borderRadius: '12px',
         border: '1px solid var(--border)',
-        borderLeft: `4px solid ${fc.color}`,
-        padding: 0, overflow: 'hidden',
+        overflow: 'hidden', display: 'flex',
         transition: 'box-shadow 0.15s',
-        display: 'flex', flexDirection: 'column',
       }}
     >
-      {/* Cover image thumbnail */}
-      {post.coverImageUrl && (
-        <img
-          src={post.coverImageUrl}
-          alt=""
-          style={{ width: '100%', height: '100px', objectFit: 'cover', display: 'block' }}
-          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-        />
-      )}
-      <div style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Format badge + network icon */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.35rem', alignItems: 'center' }}>
-            <span style={{
-              fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-              color: fc.color, padding: '0.1rem 0',
+      {/* ── Left color accent (structural div, always visible) ── */}
+      <div style={{ width: 4, flexShrink: 0, background: fc.color, borderRadius: '12px 0 0 12px' }} />
+
+      {/* ── Card content ── */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        {/* Cover image */}
+        {post.coverImageUrl && (
+          <img
+            src={post.coverImageUrl}
+            alt=""
+            style={{ width: '100%', height: '90px', objectFit: 'cover', display: 'block' }}
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        )}
+
+        <div style={{ padding: '0.7rem 0.85rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Format label */}
+            <div style={{ marginBottom: '0.2rem' }}>
+              <span style={{
+                fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                color: fc.color,
+              }}>
+                {network?.Icon && <network.Icon size={8} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }} />}
+                {post.formato}
+              </span>
+            </div>
+
+            {/* Title */}
+            <h3 style={{
+              fontFamily: 'DM Sans, system-ui', fontSize: '0.85rem', fontWeight: 500,
+              color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: '0.3rem',
+              overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
+              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
             }}>
-              {network?.Icon && <network.Icon size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3, opacity: 0.6 }} />}
-              {post.formato}
-            </span>
+              {post.titulo}
+            </h3>
+
+            {/* Pilar tag + date */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', alignItems: 'center' }}>
+              {pilar && (
+                <span style={{
+                  fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                  color: pilar.color, background: `${pilar.color}15`, border: `1px solid ${pilar.color}30`,
+                  padding: '0.1rem 0.45rem', borderRadius: '20px', whiteSpace: 'nowrap',
+                }}>
+                  {pilar.label}
+                </span>
+              )}
+              {post.scheduledDate && (
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>
+                  {new Date(post.scheduledDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Title */}
-          <h3 style={{
-            fontFamily: 'DM Sans, system-ui', fontSize: '0.88rem', fontWeight: 500,
-            color: 'var(--text-primary)', lineHeight: 1.35, marginBottom: '0.25rem',
-            overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
-            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          {/* Status badge */}
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+            fontSize: '0.62rem', fontWeight: 600, color: sc.color,
+            background: sc.bg, padding: '0.18rem 0.5rem', borderRadius: '20px',
+            border: `1px solid ${sc.color}30`, flexShrink: 0, whiteSpace: 'nowrap',
           }}>
-            {post.titulo}
-          </h3>
-
-          {/* Date */}
-          {post.scheduledDate && (
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
-              {new Date(post.scheduledDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </span>
-          )}
+            {sc.icon} <span className="hidden sm:inline">{sc.label}</span>
+          </span>
         </div>
-
-        {/* Status badge */}
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-          fontSize: '0.68rem', fontWeight: 600, color: sc.color,
-          background: sc.bg, padding: '0.2rem 0.55rem', borderRadius: '20px',
-          border: `1px solid ${sc.color}30`, flexShrink: 0, whiteSpace: 'nowrap',
-        }}>
-          {sc.icon} <span className="hidden sm:inline">{sc.label}</span>
-        </span>
       </div>
     </motion.button>
   );

@@ -43,6 +43,7 @@ export const posts = mysqlTable("posts", {
   postUrl: text("postUrl"),
   responsavel: varchar("responsavel", { length: 200 }),
   coverImageUrl: mediumtext("coverImageUrl"),
+  pilar: varchar("pilar", { length: 100 }),
   checklist: json("checklist").$type<{
     legenda: boolean;
     arte: boolean;

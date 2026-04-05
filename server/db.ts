@@ -19,6 +19,7 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
     // Widen image columns to MEDIUMTEXT (16 MB) so base64 data URLs fit
     await db.execute(sql`ALTER TABLE posts MODIFY COLUMN coverImageUrl MEDIUMTEXT`);
     await db.execute(sql`ALTER TABLE attachments MODIFY COLUMN fileUrl MEDIUMTEXT`);
+    await db.execute(sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS pilar VARCHAR(100)`);
     console.log("[DB] Column migrations applied");
   } catch (e) {
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));

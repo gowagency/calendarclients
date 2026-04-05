@@ -99,6 +99,18 @@ export function getFormatColor(formato: string, socialNetwork?: string) {
   return FORMAT_COLOR[formato] ?? FORMAT_COLOR['_default'];
 }
 
+// ─── PILARES DE CONTEÚDO ───────────────────────────────────────────────────
+
+export const PILARES = [
+  { id: 'estrutura',                 label: 'Estrutura',                  color: '#F59E0B' },
+  { id: 'consciencia',               label: 'Consciência',                color: '#3B82F6' },
+  { id: 'acolhimento_adulto',        label: 'Acolhimento Adulto',         color: '#22C55E' },
+  { id: 'estetica_da_ordem',         label: 'Estética da Ordem',          color: '#EC4899' },
+  { id: 'espiritualidade_implicita', label: 'Espiritualidade Implícita',  color: '#8B5CF6' },
+] as const;
+
+export type PilarId = typeof PILARES[number]['id'];
+
 // ─── CALENDAR ──────────────────────────────────────────────────────────────
 
 export const DIAS_SEMANA = ['SEG', 'TER', 'QUA', 'QUI', 'SEX'];
