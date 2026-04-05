@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0d0d0d"/>
+  <!-- C/G outer shape -->
+  <path fill="white" d="
+    M 148 28
+    H 62
+    Q 28 28 28 62
+    L 28 138
+    Q 28 172 62 172
+    H 148
+    V 150
+    H 62
+    Q 50 150 50 138
+    L 50 62
+    Q 50 50 62 50
+    H 148
+    Z
+  "/>
+  <!-- Inner arrow/chevron pointing right -->
+  <path fill="white" d="
+    M 88 80
+    L 148 80
+    L 172 100
+    L 148 120
+    L 88 120
+    L 112 100
+    Z
+  "/>
+</svg>
