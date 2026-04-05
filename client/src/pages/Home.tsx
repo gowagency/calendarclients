@@ -14,6 +14,9 @@ import {
   NETWORKS, NETWORK_CONFIG, STATUS_CONFIG, STATUS_ORDER,
   FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey,
 } from '@/lib/config';
+import { EditorialPage, PosicionamentoPage } from './EditorialPage';
+
+type PageView = 'calendario' | 'editorial' | 'posicionamento';
 
 const CLIENT_LABELS: Record<ClientSlug, string> = {
   alinyrayze: 'Aliny Rayze',
@@ -22,7 +25,7 @@ const CLIENT_LABELS: Record<ClientSlug, string> = {
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
-type View = 'calendario' | 'realizadas' | 'agendadas';
+type View = 'calendario' | 'realizadas' | 'agendadas' | 'feed';
 type NetworkId = typeof NETWORKS[number]['id'];
 
 // ─── NEW POST MODAL ────────────────────────────────────────────────────────────
@@ -618,10 +621,96 @@ function QuickBlock({ client }: { client: string }) {
   );
 }
 
+// ─── FEED VIEW ────────────────────────────────────────────────────────────────
+
+function FeedView({ posts, onSelectPost }: { posts: Post[]; onSelectPost: (p: Post) => void }) {
+  // Posts com capa, mais recentes primeiro
+  const feedPosts = useMemo(() =>
+    [...posts]
+      .filter(p => p.coverImageUrl && p.scheduledDate)
+      .sort((a, b) => (b.scheduledDate || 0) - (a.scheduledDate || 0))
+      .slice(0, 9),
+    [posts]
+  );
+
+  if (feedPosts.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-elevated)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+        <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📸</div>
+        <h3 style={{ fontFamily: 'DM Sans, system-ui', fontSize: '1rem', fontWeight: 400, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>Nenhum criativo no feed</h3>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', maxWidth: '320px', margin: '0 auto' }}>
+          Adicione uma capa nos posts do calendário para simular o feed do Instagram.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+        <span style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>
+          Simulação do feed · {feedPosts.length} post{feedPosts.length !== 1 ? 's' : ''} mais recentes
+        </span>
+      </div>
+      {/* Grid 3 colunas estilo Instagram */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px', maxWidth: '600px' }}>
+        {feedPosts.map(p => {
+          const network = NETWORK_CONFIG[p.socialNetwork];
+          return (
+            <button
+              key={p.id}
+              onClick={() => onSelectPost(p)}
+              style={{
+                position: 'relative',
+                aspectRatio: '4/5',
+                background: 'var(--bg-elevated)',
+                border: 'none',
+                cursor: 'pointer',
+                overflow: 'hidden',
+                padding: 0,
+              }}
+            >
+              <img
+                src={p.coverImageUrl!}
+                alt={p.titulo}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+              {/* Overlay on hover */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'rgba(0,0,0,0)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.35)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0)')}
+              >
+                <span style={{ color: '#fff', fontSize: '0.7rem', fontWeight: 600, opacity: 0, transition: 'opacity 0.2s', textAlign: 'center', padding: '0.25rem' }}>
+                  {p.titulo.length > 40 ? p.titulo.slice(0, 40) + '…' : p.titulo}
+                </span>
+              </div>
+              {/* Network badge */}
+              <div style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {network?.Icon && <network.Icon size={10} style={{ color: '#fff' }} />}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {feedPosts.length < 9 && (
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.75rem', fontStyle: 'italic' }}>
+          {9 - feedPosts.length} slot{9 - feedPosts.length !== 1 ? 's' : ''} restante{9 - feedPosts.length !== 1 ? 's' : ''} · adicione capas nos posts para completar o feed
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 export default function Home({ client }: { client: ClientSlug }) {
   const { theme, toggleTheme } = useTheme();
+  const [pageView, setPageView] = useState<PageView>('calendario');
   const [activeView, setActiveView] = useState<View>('calendario');
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>('all');
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -760,6 +849,38 @@ export default function Home({ client }: { client: ClientSlug }) {
 
       <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem' }}>
 
+        {/* ═══ PAGE NAVIGATION ═══ */}
+        <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0rem' }}>
+          {([
+            { id: 'calendario'     as const, label: 'Calendário'      },
+            { id: 'editorial'      as const, label: 'Linha Editorial'  },
+            { id: 'posicionamento' as const, label: 'Posicionamento'   },
+          ] satisfies { id: PageView; label: string }[]).map(p => (
+            <button
+              key={p.id}
+              onClick={() => setPageView(p.id)}
+              style={{
+                padding: '0.6rem 1.25rem',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: pageView === p.id ? '2px solid var(--text-primary)' : '2px solid transparent',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: pageView === p.id ? 600 : 400,
+                color: pageView === p.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                marginBottom: '-1px',
+                transition: 'all 0.15s',
+                fontFamily: 'DM Sans, system-ui',
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {pageView === 'calendario' && (
+          <>
+
         {/* ═══ NETWORK SELECTOR ═══ */}
         <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
           {NETWORKS.map(n => {
@@ -875,10 +996,11 @@ export default function Home({ client }: { client: ClientSlug }) {
         {/* ═══ VIEW TABS ═══ */}
         <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.25rem', background: 'var(--bg-elevated)', borderRadius: '10px', padding: '0.25rem' }}>
           {([
-            { id: 'calendario', label: 'Calendário', icon: <CalendarDays size={14} /> },
-            { id: 'realizadas', label: `Realizadas (${realizadas.length})`, icon: <CheckCircle2 size={14} /> },
-            { id: 'agendadas', label: `Agendadas (${agendadas.length})`, icon: <Clock3 size={14} /> },
-          ] as const).map(tab => (
+            { id: 'calendario' as View, label: 'Calendário', icon: <CalendarDays size={14} /> },
+            { id: 'realizadas' as View, label: `Realizadas (${realizadas.length})`, icon: <CheckCircle2 size={14} /> },
+            { id: 'agendadas' as View, label: `Agendadas (${agendadas.length})`, icon: <Clock3 size={14} /> },
+            { id: 'feed' as View, label: 'Feed', icon: <LayoutGrid size={14} /> },
+          ]).map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveView(tab.id)}
@@ -964,10 +1086,22 @@ export default function Home({ client }: { client: ClientSlug }) {
               )}
             </motion.div>
           )}
+
+          {activeView === 'feed' && (
+            <motion.div key="feed" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <FeedView posts={filteredPosts} onSelectPost={setSelectedPost} />
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* ═══ BLOCO DE SUPORTE ═══ */}
         <QuickBlock client={client} />
+
+          </>
+        )}
+
+        {pageView === 'editorial' && <EditorialPage client={client} />}
+        {pageView === 'posicionamento' && <PosicionamentoPage client={client} />}
 
       </main>
 

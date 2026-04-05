@@ -29,6 +29,14 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Limpa cache de redirects antigos
+  app.use((req, res, next) => {
+    if (req.path === '/alinyrayze' || req.path === '/juniorlopes') {
+      return res.redirect(302, '/');
+    }
+    next();
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({ router: appRouter, createContext })
