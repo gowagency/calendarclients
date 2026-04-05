@@ -1,19 +1,24 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Plus, Search, TrendingUp,
   Trophy, Flame, Target, CalendarDays, CheckCircle2, Clock3,
-  Sun, Moon, LayoutGrid, List,
+  Sun, Moon, LayoutGrid,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import { useTheme } from '@/contexts/ThemeContext';
-import type { Post } from '../../../drizzle/schema';
+import type { Post, ClientSlug } from '../../../drizzle/schema';
 import PostSheet from '@/components/PostSheet';
 import {
   NETWORKS, NETWORK_CONFIG, STATUS_CONFIG, STATUS_ORDER,
   FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, getWeekDays, formatDateKey, formatDateBR,
 } from '@/lib/config';
+
+const CLIENT_LABELS: Record<ClientSlug, string> = {
+  alinyrayze: 'Aliny Rayze',
+  juniorlopes: 'Junior Lopes',
+};
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -378,7 +383,8 @@ function CalendarView({
       </div>
 
       {/* Calendar grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ overflowX: 'auto', marginBottom: '1.5rem', WebkitOverflowScrolling: 'touch' as any }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(140px, 1fr))', gap: '0.5rem', minWidth: '700px' }}>
         {weekDays.map((day, i) => {
           const key = formatDateKey(day);
           const dayPosts = postsByDate[key] || [];
@@ -477,6 +483,7 @@ function CalendarView({
           );
         })}
       </div>
+      </div>
 
       {/* Unscheduled posts */}
       {unscheduled.length > 0 && (
@@ -516,7 +523,7 @@ function CalendarView({
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-export default function Home() {
+export default function Home({ client }: { client: ClientSlug }) {
   const { theme, toggleTheme } = useTheme();
   const [activeView, setActiveView] = useState<View>('calendario');
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>('all');
@@ -525,22 +532,12 @@ export default function Home() {
   const [search, setSearch] = useState('');
 
   const utils = trpc.useUtils();
-  const postsQuery = trpc.posts.list.useQuery();
+  const postsQuery = trpc.posts.list.useQuery({ client });
   const createPost = trpc.posts.create.useMutation({
     onSuccess: () => { utils.posts.invalidate(); toast.success('Post criado'); setShowNewPost(false); },
   });
-  const seedPosts = trpc.posts.seed.useMutation({
-    onSuccess: () => utils.posts.invalidate(),
-  });
 
   const allPosts: Post[] = (postsQuery.data as Post[]) || [];
-
-  // Auto seed if empty
-  useEffect(() => {
-    if (postsQuery.data && (postsQuery.data as Post[]).length === 0) {
-      seedPosts.mutate();
-    }
-  }, [postsQuery.data]);
 
   // Filter by network
   const networkPosts = useMemo(() => {
@@ -613,8 +610,9 @@ export default function Home() {
       }}>
         <div style={{
           maxWidth: '1280px', margin: '0 auto',
-          padding: '0.875rem 1.5rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
+          padding: '0.75rem 1rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+          flexWrap: 'wrap',
         }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -630,10 +628,10 @@ export default function Home() {
                 fontFamily: 'DM Sans, system-ui', fontSize: '1rem', fontWeight: 600,
                 color: 'var(--text-primary)', letterSpacing: '-0.02em',
               }}>
-                Gow Calendar
+                {CLIENT_LABELS[client]}
               </span>
               <span className="label" style={{ display: 'block', fontSize: '0.55rem', marginTop: '-0.1rem' }}>
-                Calendário editorial
+                Calendário editorial · Gow Agency
               </span>
             </div>
           </div>
@@ -650,7 +648,7 @@ export default function Home() {
                 onChange={e => setSearch(e.target.value)}
                 style={{
                   paddingLeft: '1.8rem', paddingRight: '0.75rem',
-                  width: '180px', fontSize: '0.82rem',
+                  width: 'min(180px, 120px)', fontSize: '0.82rem',
                   background: 'var(--bg-elevated)',
                 }}
               />
@@ -686,7 +684,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '1.5rem' }}>
+      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem' }}>
 
         {/* ═══ NETWORK SELECTOR ═══ */}
         <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
@@ -725,7 +723,7 @@ export default function Home() {
         </div>
 
         {/* ═══ STATS + PROGRESS ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', marginBottom: '1.25rem' }}>
 
           {/* Stat cards */}
           {[
@@ -914,7 +912,7 @@ export default function Home() {
         {showNewPost && (
           <NewPostModal
             onClose={() => setShowNewPost(false)}
-            onSave={data => createPost.mutate(data)}
+            onSave={data => createPost.mutate({ ...data, client })}
           />
         )}
       </AnimatePresence>

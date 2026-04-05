@@ -9,7 +9,8 @@ import Home from "./pages/Home";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/alinyrayze" component={() => <Home client="alinyrayze" />} />
+      <Route path="/juniorlopes" component={() => <Home client="juniorlopes" />} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

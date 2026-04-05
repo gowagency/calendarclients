@@ -25,23 +25,23 @@ export async function getDb() {
 
 // ─── POSTS ───
 
-export async function getAllPosts() {
+export async function getAllPosts(client: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(posts).orderBy(asc(posts.sortOrder), asc(posts.id));
+  return db.select().from(posts).where(eq(posts.client, client)).orderBy(asc(posts.sortOrder), asc(posts.id));
 }
 
-export async function getPostsByDateRange(startMs: number, endMs: number) {
+export async function getPostsByDateRange(client: string, startMs: number, endMs: number) {
   const db = await getDb();
   if (!db) return [];
   return db
     .select()
     .from(posts)
-    .where(and(gte(posts.scheduledDate, startMs), lte(posts.scheduledDate, endMs)))
+    .where(and(eq(posts.client, client), gte(posts.scheduledDate, startMs), lte(posts.scheduledDate, endMs)))
     .orderBy(asc(posts.scheduledDate), asc(posts.sortOrder));
 }
 
-export async function getPostStats() {
+export async function getPostStats(client: string) {
   const db = await getDb();
   if (!db) return [];
   return db
@@ -51,6 +51,7 @@ export async function getPostStats() {
       count: sql<number>`count(*)`,
     })
     .from(posts)
+    .where(eq(posts.client, client))
     .groupBy(posts.status, posts.socialNetwork);
 }
 
@@ -75,11 +76,11 @@ export async function deletePost(id: number) {
   await db.delete(posts).where(eq(posts.id, id));
 }
 
-export async function seedInitialPosts() {
+export async function seedInitialPosts(client: string) {
   const db = await getDb();
   if (!db) return;
 
-  const existing = await db.select().from(posts).limit(1);
+  const existing = await db.select().from(posts).where(eq(posts.client, client)).limit(1);
   if (existing.length > 0) return;
 
   const now = Date.now();
@@ -210,7 +211,7 @@ export async function seedInitialPosts() {
   ];
 
   for (const post of seedData) {
-    await db.insert(posts).values(post);
+    await db.insert(posts).values({ ...post, client });
   }
 }
 

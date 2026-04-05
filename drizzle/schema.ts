@@ -9,8 +9,12 @@ import {
   bigint,
 } from "drizzle-orm/mysql-core";
 
+export const CLIENTS = ["alinyrayze", "juniorlopes"] as const;
+export type ClientSlug = typeof CLIENTS[number];
+
 export const posts = mysqlTable("posts", {
   id: int("id").autoincrement().primaryKey(),
+  client: varchar("client", { length: 100 }).notNull().default("alinyrayze"),
   socialNetwork: mysqlEnum("socialNetwork", [
     "instagram",
     "linkedin",

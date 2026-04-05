@@ -3,18 +3,28 @@ import { z } from "zod";
 import * as db from "./db";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
+import { CLIENTS, type ClientSlug } from "../drizzle/schema";
+
+const clientSchema = z.enum(CLIENTS as [ClientSlug, ...ClientSlug[]]);
 
 export const appRouter = router({
   posts: router({
-    list: publicProcedure.query(() => db.getAllPosts()),
+    list: publicProcedure
+      .input(z.object({ client: clientSchema }))
+      .query(({ input }) => db.getAllPosts(input.client)),
+
     byDateRange: publicProcedure
-      .input(z.object({ start: z.number(), end: z.number() }))
-      .query(({ input }) => db.getPostsByDateRange(input.start, input.end)),
-    stats: publicProcedure.query(() => db.getPostStats()),
+      .input(z.object({ client: clientSchema, start: z.number(), end: z.number() }))
+      .query(({ input }) => db.getPostsByDateRange(input.client, input.start, input.end)),
+
+    stats: publicProcedure
+      .input(z.object({ client: clientSchema }))
+      .query(({ input }) => db.getPostStats(input.client)),
 
     create: publicProcedure
       .input(
         z.object({
+          client: clientSchema,
           socialNetwork: z
             .enum(["instagram", "linkedin", "substack", "spotify", "youtube"])
             .default("instagram"),
@@ -87,7 +97,9 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deletePost(input.id)),
 
-    seed: publicProcedure.mutation(() => db.seedInitialPosts()),
+    seed: publicProcedure
+      .input(z.object({ client: clientSchema }))
+      .mutation(({ input }) => db.seedInitialPosts(input.client)),
 
     uploadCover: publicProcedure
       .input(
