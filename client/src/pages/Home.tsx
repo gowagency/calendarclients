@@ -713,22 +713,28 @@ function QuickBlock({ client }: { client: string }) {
                       {task.title || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic', fontWeight: 400 }}>Sem título</span>}
                     </span>
                   </div>
-                  {/* Bottom row: status pill + type pill + canva badge */}
+                  {/* Bottom row: status select + type select (styled as pills) + canva badge */}
                   <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{
-                      fontSize: '10px', padding: '2px 9px', borderRadius: '100px',
-                      fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-                      background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color,
-                    }}>
-                      {sc.label}
-                    </span>
-                    <span style={{
-                      fontSize: '10px', padding: '2px 8px', borderRadius: '100px',
-                      fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
-                      background: `${tc.color}15`, border: `1px solid ${tc.color}35`, color: tc.color,
-                    }}>
-                      {tc.label}
-                    </span>
+                    <select
+                      value={task.status}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => { e.stopPropagation(); updateTask(task.id, 'status', e.target.value); }}
+                      style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', padding: '2px 9px', borderRadius: '100px', border: `1px solid ${sc.border}`, background: sc.bg, color: sc.color, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                    >
+                      {PROD_STATUS_ORDER.map(k => (
+                        <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={task.type}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => { e.stopPropagation(); updateTask(task.id, 'type', e.target.value); }}
+                      style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '100px', border: `1px solid ${tc.color}35`, background: `${tc.color}15`, color: tc.color, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                    >
+                      {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+                        <option key={k} value={k}>{v.label}</option>
+                      ))}
+                    </select>
                     {task.canvaUrl && (
                       <a
                         href={task.canvaUrl}
@@ -750,37 +756,11 @@ function QuickBlock({ client }: { client: string }) {
               {/* Expanded editing */}
               {open && (
                 <div style={{ padding: '0 0.85rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', borderTop: '1px solid var(--border)' }}>
-                  {/* Title edit */}
-                  <input type="text" value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)} style={{ width: '100%', fontSize: '0.875rem', marginTop: '0.65rem' }} />
-
-                  {/* Status + Type selects + Date — inline row */}
-                  {(() => {
-                    const sv = PROD_STATUS_CONFIG[task.status];
-                    const tv = PROD_TYPE_CONFIG[task.type];
-                    return (
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <select
-                          value={task.status}
-                          onChange={e => updateTask(task.id, 'status', e.target.value)}
-                          style={{ fontSize: '0.78rem', fontWeight: 700, color: sv.color, background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', letterSpacing: '0.04em' }}
-                        >
-                          {PROD_STATUS_ORDER.map(k => (
-                            <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={task.type}
-                          onChange={e => updateTask(task.id, 'type', e.target.value)}
-                          style={{ fontSize: '0.78rem', fontWeight: 700, color: tv.color, background: `${tv.color}15`, border: `1px solid ${tv.color}35`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', letterSpacing: '0.04em' }}
-                        >
-                          {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
-                            <option key={k} value={k}>{v.label}</option>
-                          ))}
-                        </select>
-                        <input type="date" value={task.dueDate} onChange={e => updateTask(task.id, 'dueDate', e.target.value)} style={{ marginLeft: 'auto', fontSize: '0.78rem', padding: '0.2rem 0.45rem' }} />
-                      </div>
-                    );
-                  })()}
+                  {/* Title + Date row */}
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.65rem' }}>
+                    <input type="text" value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)} style={{ flex: 1, fontSize: '0.875rem' }} />
+                    <input type="date" value={task.dueDate} onChange={e => updateTask(task.id, 'dueDate', e.target.value)} style={{ fontSize: '0.78rem', padding: '0.2rem 0.45rem', flexShrink: 0 }} />
+                  </div>
 
                   {/* Obs */}
                   <textarea
