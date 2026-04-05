@@ -10,11 +10,27 @@ import {
 } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _migrated = false;
+
+async function runMigrations(db: ReturnType<typeof drizzle>) {
+  if (_migrated) return;
+  _migrated = true;
+  try {
+    // Widen image columns to MEDIUMTEXT (16 MB) so base64 data URLs fit
+    await db.execute(sql`ALTER TABLE posts MODIFY COLUMN coverImageUrl MEDIUMTEXT`);
+    await db.execute(sql`ALTER TABLE attachments MODIFY COLUMN fileUrl MEDIUMTEXT`);
+    console.log("[DB] Column migrations applied");
+  } catch (e) {
+    // Safe to ignore — column already correct or table doesn't exist yet
+    console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));
+  }
+}
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       _db = drizzle(process.env.DATABASE_URL);
+      await runMigrations(_db);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

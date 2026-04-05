@@ -3,6 +3,7 @@ import {
   mysqlEnum,
   mysqlTable,
   text,
+  mediumtext,
   timestamp,
   varchar,
   json,
@@ -41,7 +42,7 @@ export const posts = mysqlTable("posts", {
   canvaLink: text("canvaLink"),
   postUrl: text("postUrl"),
   responsavel: varchar("responsavel", { length: 200 }),
-  coverImageUrl: text("coverImageUrl"),
+  coverImageUrl: mediumtext("coverImageUrl"),
   checklist: json("checklist").$type<{
     legenda: boolean;
     arte: boolean;
@@ -78,7 +79,7 @@ export const attachments = mysqlTable("attachments", {
   id: int("id").autoincrement().primaryKey(),
   postId: int("postId").notNull(),
   fileName: varchar("fileName", { length: 500 }).notNull(),
-  fileUrl: text("fileUrl").notNull(),
+  fileUrl: mediumtext("fileUrl").notNull(),
   mimeType: varchar("mimeType", { length: 100 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

@@ -1,8 +1,7 @@
 import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { storagePut, storageUploadPostFile } from "./storage";
-import { nanoid } from "nanoid";
+import { storageUploadPostFile } from "./storage";
 import { CLIENTS, type ClientSlug } from "../drizzle/schema";
 
 const clientSchema = z.enum(CLIENTS as [ClientSlug, ...ClientSlug[]]);
@@ -112,15 +111,9 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         const buffer = Buffer.from(input.fileData, "base64");
-        // Fetch post metadata for Drive folder naming
-        const posts = await db.getPostById(input.postId);
         const { url } = await storageUploadPostFile({
           buffer,
-          fileName: `${nanoid()}-${input.fileName}`,
           mimeType: input.mimeType || "image/jpeg",
-          scheduledDate: posts?.scheduledDate ?? null,
-          sortOrder: posts?.sortOrder ?? null,
-          postTitle: posts?.titulo ?? undefined,
         });
         await db.updatePost(input.postId, { coverImageUrl: url });
         return { url };
@@ -159,14 +152,9 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         const buffer = Buffer.from(input.fileData, "base64");
-        const post = await db.getPostById(input.postId);
         const { url } = await storageUploadPostFile({
           buffer,
-          fileName: `${nanoid()}-${input.fileName}`,
           mimeType: input.mimeType || "application/octet-stream",
-          scheduledDate: post?.scheduledDate ?? null,
-          sortOrder: post?.sortOrder ?? null,
-          postTitle: post?.titulo ?? undefined,
         });
         return db.createAttachment({
           postId: input.postId,

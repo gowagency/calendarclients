@@ -25,9 +25,10 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
   const [commentText, setCommentText] = useState('');
   const [showAjuste, setShowAjuste] = useState(false);
   const [ajusteText, setAjusteText] = useState('');
+  const [carouselIdx, setCarouselIdx] = useState(0);
 
   useEffect(() => {
-    if (post) setEditingPost({ ...post });
+    if (post) { setEditingPost({ ...post }); setCarouselIdx(0); }
   }, [post]);
 
   useEffect(() => {
@@ -210,28 +211,87 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
             {/* Scrollable content */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem' }}>
 
-              {/* Cover image */}
-              {editingPost.coverImageUrl && (
-                <img
-                  src={editingPost.coverImageUrl}
-                  alt={editingPost.titulo}
-                  style={{ width: '100%', borderRadius: '10px', marginBottom: '0.75rem', objectFit: 'cover', maxHeight: '220px' }}
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-              )}
+              {/* ── Carousel or Cover image ── */}
+              {(() => {
+                const imageAtts = ((attachmentsQuery.data as Attachment[] | undefined) || [])
+                  .filter(a => a.mimeType?.startsWith('image/'));
+                const isCarousel = editingPost.formato === 'Carrossel';
 
-              {/* Upload cover */}
-              <label style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem',
-                cursor: uploadCover.isPending ? 'wait' : 'pointer',
-                color: uploadCover.isPending ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-                fontSize: '0.78rem', opacity: uploadCover.isPending ? 0.6 : 1,
-              }}>
-                <Upload size={13} />
-                {uploadCover.isPending ? 'Enviando...' : editingPost.coverImageUrl ? 'Trocar capa' : 'Adicionar capa'}
-                <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadCover.isPending}
-                  onChange={e => e.target.files?.[0] && handleCoverUpload(e.target.files[0])} />
-              </label>
+                if (isCarousel && imageAtts.length > 0) {
+                  const safeIdx = Math.min(carouselIdx, imageAtts.length - 1);
+                  const current = imageAtts[safeIdx];
+                  return (
+                    <div style={{ marginBottom: '1rem' }}>
+                      {/* Carousel viewer */}
+                      <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                        <img
+                          src={current.fileUrl}
+                          alt={current.fileName}
+                          style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', display: 'block' }}
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                        {imageAtts.length > 1 && (
+                          <>
+                            <button
+                              onClick={() => setCarouselIdx(i => Math.max(0, i - 1))}
+                              disabled={safeIdx === 0}
+                              style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: safeIdx === 0 ? 'not-allowed' : 'pointer', color: '#fff', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: safeIdx === 0 ? 0.35 : 1 }}>
+                                ‹
+                              </button>
+                              <button
+                                onClick={() => setCarouselIdx(i => Math.min(imageAtts.length - 1, i + 1))}
+                                disabled={safeIdx === imageAtts.length - 1}
+                                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: safeIdx === imageAtts.length - 1 ? 'not-allowed' : 'pointer', color: '#fff', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: safeIdx === imageAtts.length - 1 ? 0.35 : 1 }}>
+                                ›
+                              </button>
+                            </>
+                          )}
+                        {/* Dots + counter */}
+                        <div style={{ position: 'absolute', bottom: 8, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '5px', alignItems: 'center' }}>
+                          {imageAtts.map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setCarouselIdx(i)}
+                              style={{ width: i === safeIdx ? 18 : 6, height: 6, borderRadius: 3, background: i === safeIdx ? '#fff' : 'rgba(255,255,255,0.5)', border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.2s' }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '0.4rem', textAlign: 'center' }}>
+                        {safeIdx + 1} / {imageAtts.length} · {current.fileName}
+                      </p>
+                    </div>
+                  );
+                }
+
+                // Regular cover image (non-carousel)
+                if (editingPost.coverImageUrl) {
+                  return (
+                    <img
+                      src={editingPost.coverImageUrl}
+                      alt={editingPost.titulo}
+                      style={{ width: '100%', borderRadius: '10px', marginBottom: '0.75rem', objectFit: 'cover', maxHeight: '220px' }}
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Upload cover (only for non-carousel, or carousel without images yet) */}
+              {editingPost.formato !== 'Carrossel' && (
+                <label style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem',
+                  cursor: uploadCover.isPending ? 'wait' : 'pointer',
+                  color: uploadCover.isPending ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+                  fontSize: '0.78rem', opacity: uploadCover.isPending ? 0.6 : 1,
+                }}>
+                  <Upload size={13} />
+                  {uploadCover.isPending ? 'Enviando...' : editingPost.coverImageUrl ? 'Trocar capa' : 'Adicionar capa'}
+                  <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadCover.isPending}
+                    onChange={e => e.target.files?.[0] && handleCoverUpload(e.target.files[0])} />
+                </label>
+              )}
 
               {/* Fields */}
               <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
