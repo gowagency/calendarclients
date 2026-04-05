@@ -262,9 +262,12 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
       onClick={onClick}
       style={{
         textAlign: 'left', width: '100%', cursor: 'pointer',
-        background: fc.bg, borderRadius: '12px',
-        border: `1.5px solid ${fc.border}`, padding: '0.9rem 1rem',
-        transition: 'border-color 0.15s, background 0.15s',
+        background: 'var(--bg-elevated)', borderRadius: '12px',
+        border: '1px solid var(--border)',
+        borderLeft: `4px solid ${fc.color}`,
+        padding: 0, overflow: 'hidden',
+        transition: 'box-shadow 0.15s',
+        display: 'flex', flexDirection: 'column',
       }}
     >
       {/* Cover image thumbnail */}
@@ -272,35 +275,26 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
         <img
           src={post.coverImageUrl}
           alt=""
-          style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.6rem', display: 'block' }}
+          style={{ width: '100%', height: '100px', objectFit: 'cover', display: 'block' }}
           onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
       )}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+      <div style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Network + format badges */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.4rem' }}>
+          {/* Format badge + network icon */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.35rem', alignItems: 'center' }}>
             <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
-              fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-              color: network?.color, background: `${network?.color}14`,
-              padding: '0.12rem 0.5rem', borderRadius: '20px',
+              fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+              color: fc.color, padding: '0.1rem 0',
             }}>
-              {network?.Icon && <network.Icon size={10} />}
-              {network?.label}
-            </span>
-            <span style={{
-              fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-              color: fc.color, background: `${fc.color}18`, border: `1px solid ${fc.border}`,
-              padding: '0.12rem 0.5rem', borderRadius: '20px',
-            }}>
+              {network?.Icon && <network.Icon size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3, opacity: 0.6 }} />}
               {post.formato}
             </span>
           </div>
 
           {/* Title */}
           <h3 style={{
-            fontFamily: 'DM Sans, system-ui', fontSize: '0.9rem', fontWeight: 400,
+            fontFamily: 'DM Sans, system-ui', fontSize: '0.88rem', fontWeight: 500,
             color: 'var(--text-primary)', lineHeight: 1.35, marginBottom: '0.25rem',
             overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
             WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
@@ -310,7 +304,7 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
 
           {/* Date */}
           {post.scheduledDate && (
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
               {new Date(post.scheduledDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
             </span>
           )}
@@ -319,8 +313,8 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
         {/* Status badge */}
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-          fontSize: '0.7rem', fontWeight: 600, color: sc.color,
-          background: sc.bg, padding: '0.25rem 0.6rem', borderRadius: '20px',
+          fontSize: '0.68rem', fontWeight: 600, color: sc.color,
+          background: sc.bg, padding: '0.2rem 0.55rem', borderRadius: '20px',
           border: `1px solid ${sc.color}30`, flexShrink: 0, whiteSpace: 'nowrap',
         }}>
           {sc.icon} <span className="hidden sm:inline">{sc.label}</span>
@@ -999,23 +993,6 @@ export default function Home({ client }: { client: ClientSlug }) {
               </button>
             );
           })}
-        </div>
-
-        {/* ═══ FORMAT LEGEND ═══ */}
-        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          {(['Reels','Carrossel','Foto','Estático'] as const).map(f => {
-            const fc = getFormatColor(f);
-            return (
-              <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: fc.color, background: fc.bg, border: `1px solid ${fc.border}`, padding: '0.15rem 0.6rem', borderRadius: '20px' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: fc.color, display: 'inline-block', flexShrink: 0 }} />
-                {f}
-              </span>
-            );
-          })}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#1DB954', background: 'rgba(29,185,84,0.07)', border: '1px solid rgba(29,185,84,0.22)', padding: '0.15rem 0.6rem', borderRadius: '20px' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1DB954', display: 'inline-block', flexShrink: 0 }} />
-            Spotify
-          </span>
         </div>
 
         {/* ═══ STATS + PROGRESS ═══ */}
