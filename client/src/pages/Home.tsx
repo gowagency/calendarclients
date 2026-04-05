@@ -33,9 +33,11 @@ type NetworkId = typeof NETWORKS[number]['id'];
 function NewPostModal({
   onClose,
   onSave,
+  isPending = false,
 }: {
   onClose: () => void;
   onSave: (data: any) => void;
+  isPending?: boolean;
 }) {
   const [form, setForm] = useState({
     socialNetwork: 'instagram' as NonNullable<Post['socialNetwork']>,
@@ -228,13 +230,14 @@ function NewPostModal({
           </button>
           <button
             type="submit"
+            disabled={isPending}
             style={{
               flex: 2, padding: '0.65rem', background: 'var(--text-primary)',
-              color: 'var(--bg)', border: 'none', borderRadius: '10px', cursor: 'pointer',
-              fontWeight: 600, fontSize: '0.875rem',
+              color: 'var(--bg)', border: 'none', borderRadius: '10px', cursor: isPending ? 'not-allowed' : 'pointer',
+              fontWeight: 600, fontSize: '0.875rem', opacity: isPending ? 0.6 : 1, transition: 'opacity 0.15s',
             }}
           >
-            Criar post
+            {isPending ? 'Salvando…' : 'Criar post'}
           </button>
         </div>
       </motion.form>
@@ -680,6 +683,7 @@ export default function Home({ client }: { client: ClientSlug }) {
   const postsQuery = trpc.posts.list.useQuery({ client });
   const createPost = trpc.posts.create.useMutation({
     onSuccess: () => { utils.posts.invalidate(); toast.success('Post criado'); setShowNewPost(false); },
+    onError: (err) => toast.error(`Erro ao criar post: ${err.message}`),
   });
   const updatePost = trpc.posts.update.useMutation({
     onSuccess: () => utils.posts.invalidate(),
@@ -1073,6 +1077,7 @@ export default function Home({ client }: { client: ClientSlug }) {
           <NewPostModal
             onClose={() => setShowNewPost(false)}
             onSave={data => createPost.mutate({ ...data, client })}
+            isPending={createPost.isPending}
           />
         )}
       </AnimatePresence>
