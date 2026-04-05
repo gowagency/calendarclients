@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Plus, Search, TrendingUp,
-  Trophy, Flame, Target, CalendarDays, CheckCircle2, Clock3,
+  CalendarDays, CheckCircle2, Clock3,
   Sun, Moon, LayoutGrid,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,7 +12,7 @@ import type { Post, ClientSlug } from '../../../drizzle/schema';
 import PostSheet from '@/components/PostSheet';
 import {
   NETWORKS, NETWORK_CONFIG, STATUS_CONFIG, STATUS_ORDER,
-  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, getWeekDays, formatDateKey, formatDateBR,
+  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey,
 } from '@/lib/config';
 
 const CLIENT_LABELS: Record<ClientSlug, string> = {
@@ -39,6 +39,7 @@ function NewPostModal({
     titulo: '',
     formato: 'Post',
     conteudo: '',
+    legenda: '',
     status: 'nao_iniciado' as NonNullable<Post['status']>,
     responsavel: '',
     scheduledDate: '',
@@ -188,12 +189,24 @@ function NewPostModal({
 
         {/* Conteúdo */}
         <div>
-          <span className="label" style={{ display: 'block', marginBottom: '0.4rem' }}>Briefing (opcional)</span>
+          <span className="label" style={{ display: 'block', marginBottom: '0.4rem' }}>Copy (opcional)</span>
           <textarea
             rows={2}
-            placeholder="Descreva brevemente o conteúdo..."
+            placeholder="Escreva o copy do post..."
             value={form.conteudo}
             onChange={e => setForm(f => ({ ...f, conteudo: e.target.value }))}
+            style={{ width: '100%', fontSize: '0.85rem', resize: 'none' }}
+          />
+        </div>
+
+        {/* Legenda */}
+        <div>
+          <span className="label" style={{ display: 'block', marginBottom: '0.4rem' }}>Legenda</span>
+          <textarea
+            rows={2}
+            placeholder="Legenda do post..."
+            value={form.legenda}
+            onChange={e => setForm(f => ({ ...f, legenda: e.target.value }))}
             style={{ width: '100%', fontSize: '0.85rem', resize: 'none' }}
           />
         </div>
@@ -301,29 +314,34 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
 
 // ─── CALENDAR VIEW ────────────────────────────────────────────────────────────
 
-function CalendarView({
-  posts,
-  onSelectPost,
-  onNewPost,
-}: {
-  posts: Post[];
-  onSelectPost: (p: Post) => void;
-  onNewPost: () => void;
-}) {
-  const [currentWeek, setCurrentWeek] = useState(() => new Date());
-  const utils = trpc.useUtils();
-  const updatePost = trpc.posts.update.useMutation({
-    onSuccess: () => utils.posts.invalidate(),
-  });
+function getMonthWeekdayGrid(year: number, month: number): (Date | null)[][] {
+  const weeks: (Date | null)[][] = [];
+  let week: (Date | null)[] = [null, null, null, null, null];
+  let hasContent = false;
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= totalDays; day++) {
+    const d = new Date(year, month, day);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue;
+    const col = dow - 1;
+    week[col] = d;
+    hasContent = true;
+    if (dow === 5 || day === totalDays) {
+      if (hasContent) { weeks.push([...week]); week = [null, null, null, null, null]; hasContent = false; }
+    }
+  }
+  return weeks;
+}
 
-  const weekDays = useMemo(() => getWeekDays(currentWeek), [currentWeek]);
+function CalendarView({ posts, onSelectPost, onNewPost, updatePost }: { posts: Post[]; onSelectPost: (p: Post) => void; onNewPost: () => void; updatePost: any; }) {
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
 
-  const weekLabel = useMemo(() => {
-    const first = weekDays[0];
-    const last = weekDays[4];
-    const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-    return `${first.getDate()} de ${months[first.getMonth()]} — ${last.getDate()} de ${months[last.getMonth()]} de ${last.getFullYear()}`;
-  }, [weekDays]);
+  const monthGrid = useMemo(() => getMonthWeekdayGrid(year, month), [year, month]);
+
+  const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const monthLabel = `${monthNames[month]} ${year}`;
 
   const postsByDate = useMemo(() => {
     const map: Record<string, Post[]> = {};
@@ -338,161 +356,83 @@ function CalendarView({
   }, [posts]);
 
   const unscheduled = useMemo(() => posts.filter(p => !p.scheduledDate), [posts]);
-
-  const navWeek = (dir: number) => {
-    const d = new Date(currentWeek);
-    d.setDate(d.getDate() + dir * 7);
-    setCurrentWeek(d);
-  };
+  const navMonth = (dir: number) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + dir); setCurrentMonth(d); };
+  const todayKey = formatDateKey(new Date());
 
   return (
     <div>
-      {/* Week nav */}
+      {/* Month nav */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button
-            onClick={() => navWeek(-1)}
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'DM Sans, system-ui', whiteSpace: 'nowrap' }}>
-            {weekLabel}
-          </span>
-          <button
-            onClick={() => navWeek(1)}
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}
-          >
-            <ChevronRight size={16} />
-          </button>
+          <button onClick={() => navMonth(-1)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}><ChevronLeft size={16} /></button>
+          <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'DM Sans, system-ui', minWidth: '160px', textAlign: 'center' }}>{monthLabel}</span>
+          <button onClick={() => navMonth(1)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}><ChevronRight size={16} /></button>
         </div>
         <div style={{ display: 'flex', gap: '0.4rem' }}>
-          <button
-            onClick={() => setCurrentWeek(new Date())}
-            style={{ padding: '0.4rem 0.75rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}
-          >
-            Hoje
-          </button>
-          <button
-            onClick={onNewPost}
-            style={{ padding: '0.4rem 0.75rem', background: 'var(--text-primary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--bg)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-          >
-            <Plus size={14} /> Novo
-          </button>
+          <button onClick={() => setCurrentMonth(new Date())} style={{ padding: '0.4rem 0.75rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Hoje</button>
+          <button onClick={onNewPost} style={{ padding: '0.4rem 0.75rem', background: 'var(--text-primary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--bg)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Plus size={14} /> Novo</button>
         </div>
       </div>
 
-      {/* Calendar grid */}
-      <div style={{ overflowX: 'auto', marginBottom: '1.5rem', WebkitOverflowScrolling: 'touch' as any }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(140px, 1fr))', gap: '0.5rem', minWidth: '700px' }}>
-        {weekDays.map((day, i) => {
-          const key = formatDateKey(day);
-          const dayPosts = postsByDate[key] || [];
-          const feriado = FERIADOS_BR[key];
-          const isToday = key === formatDateKey(new Date());
+      {/* Day headers */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', marginBottom: '0.3rem' }}>
+        {DIAS_SEMANA.map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-tertiary)', textTransform: 'uppercase', padding: '0.3rem 0' }}>{d}</div>
+        ))}
+      </div>
 
-          return (
-            <div
-              key={key}
-              style={{
-                background: isToday ? 'var(--bg-elevated-hover)' : 'var(--bg-elevated)',
-                border: isToday ? '1.5px solid var(--border-strong)' : '1px solid var(--border)',
-                borderRadius: '12px', padding: '0.65rem',
-                minHeight: '120px',
-              }}
-            >
-              {/* Day header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span className="label" style={{ fontSize: '0.6rem' }}>{DIAS_SEMANA[i]}</span>
-                <span style={{
-                  fontSize: '1rem', fontWeight: isToday ? 700 : 400,
-                  fontFamily: 'DM Sans, system-ui',
-                  color: isToday ? 'var(--text-primary)' : 'var(--text-secondary)',
-                }}>
-                  {day.getDate()}
-                </span>
-              </div>
-
-              {feriado && (
-                <div style={{
-                  fontSize: '0.6rem', color: '#e5a00d', background: 'rgba(229,160,13,0.08)',
-                  padding: '0.15rem 0.35rem', borderRadius: '4px', marginBottom: '0.35rem',
-                  fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
-                  {feriado}
-                </div>
-              )}
-
-              {dayPosts.length === 0 && (
-                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontStyle: 'italic', marginTop: '0.25rem' }}>—</p>
-              )}
-
-              {dayPosts.map(p => {
-                const network = NETWORK_CONFIG[p.socialNetwork];
-                const sc = STATUS_CONFIG[p.status];
+      {/* Month grid */}
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: '700px' }}>
+          {monthGrid.map((week, wi) => (
+            <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem' }}>
+              {week.map((day, di) => {
+                if (!day) return (
+                  <div key={di} style={{ minHeight: '90px', borderRadius: '10px', background: 'var(--bg-secondary)', opacity: 0.3, border: '1px solid var(--border)' }} />
+                );
+                const key = formatDateKey(day);
+                const dayPosts = postsByDate[key] || [];
+                const feriado = FERIADOS_BR[key];
+                const isToday = key === todayKey;
                 return (
-                  <button
-                    key={p.id}
-                    onClick={() => onSelectPost(p)}
-                    style={{
-                      width: '100%', textAlign: 'left', cursor: 'pointer',
-                      background: `${network?.color}0d`,
-                      border: `1px solid ${network?.color}25`,
-                      borderRadius: '6px', padding: '0.35rem 0.45rem',
-                      marginBottom: '0.3rem',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.15rem' }}>
-                      {network?.Icon && <network.Icon size={9} style={{ color: network.color, flexShrink: 0 }} />}
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, color: network?.color }}>
-                        {p.formato}
-                      </span>
+                  <div key={key} style={{ background: 'var(--bg-elevated)', border: isToday ? '2px solid #5c7aff' : '1px solid var(--border)', borderRadius: '10px', padding: '0.5rem 0.6rem', minHeight: '90px', position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.3rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: isToday ? 700 : 400, color: isToday ? '#5c7aff' : 'var(--text-secondary)', fontFamily: 'DM Sans, system-ui' }}>{day.getDate()}</span>
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-primary)', lineHeight: 1.3, fontWeight: 500 }}>
-                      {p.titulo.length > 35 ? p.titulo.slice(0, 35) + '…' : p.titulo}
-                    </div>
-                    <div style={{
-                      marginTop: '0.2rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem',
-                      fontSize: '0.58rem', color: sc.color,
-                    }}>
-                      {sc.icon} <span>{sc.label}</span>
-                    </div>
-                  </button>
+                    {feriado && (
+                      <div style={{ fontSize: '0.55rem', color: '#e5a00d', background: 'rgba(229,160,13,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px', marginBottom: '0.25rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{feriado}</div>
+                    )}
+                    {dayPosts.map(p => {
+                      const network = NETWORK_CONFIG[p.socialNetwork];
+                      const sc = STATUS_CONFIG[p.status];
+                      return (
+                        <button key={p.id} onClick={() => onSelectPost(p)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', background: `${network?.color}0d`, border: `1px solid ${network?.color}25`, borderRadius: '6px', padding: '0.3rem 0.4rem', marginBottom: '0.25rem', display: 'block' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', marginBottom: '0.1rem' }}>
+                            {network?.Icon && <network.Icon size={8} style={{ color: network.color, flexShrink: 0 }} />}
+                            <span style={{ fontSize: '0.6rem', fontWeight: 700, color: network?.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{p.formato}</span>
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-primary)', lineHeight: 1.2, fontWeight: 500 }}>{p.titulo.length > 30 ? p.titulo.slice(0, 30) + '…' : p.titulo}</div>
+                          <div style={{ marginTop: '0.15rem', display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.55rem', color: sc.color }}>{sc.icon} <span>{sc.label}</span></div>
+                        </button>
+                      );
+                    })}
+                    {dayPosts.length === 0 && !feriado && (
+                      <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>—</p>
+                    )}
+                  </div>
                 );
               })}
-
-              {/* Quick date assign input */}
-              <input
-                type="date"
-                title="Agendar post nesta data"
-                onChange={e => {
-                  if (e.target.value) {
-                    const date = new Date(e.target.value + 'T12:00:00');
-                    // find an unscheduled post to assign — or just show new post
-                    toast.info('Selecione um post para agendar nesta data');
-                    e.target.value = '';
-                  }
-                }}
-                style={{
-                  width: '100%', fontSize: '0.6rem', padding: '0.2rem',
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-tertiary)', marginTop: '0.25rem', opacity: 0.5,
-                }}
-              />
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
       </div>
 
-      {/* Unscheduled posts */}
+      {/* Unscheduled */}
       {unscheduled.length > 0 && (
-        <div>
+        <div style={{ marginTop: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <Clock3 size={14} style={{ color: 'var(--text-tertiary)' }} />
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              Aguardando agendamento ({unscheduled.length})
-            </span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Aguardando agendamento ({unscheduled.length})</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.5rem' }}>
             {unscheduled.map(p => (
@@ -500,18 +440,119 @@ function CalendarView({
                 <PostCard post={p} onClick={() => onSelectPost(p)} />
                 <div style={{ marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.4rem', paddingLeft: '0.25rem' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Agendar:</span>
-                  <input
-                    type="date"
-                    onClick={e => e.stopPropagation()}
-                    onChange={e => {
-                      if (e.target.value) {
-                        updatePost.mutate({ id: p.id, scheduledDate: new Date(e.target.value + 'T12:00:00').getTime() });
-                        toast.success('Post agendado');
-                      }
-                    }}
-                    style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem', flex: 1 }}
-                  />
+                  <input type="date" onClick={e => e.stopPropagation()} onChange={e => { if (e.target.value) { updatePost.mutate({ id: p.id, scheduledDate: new Date(e.target.value + 'T12:00:00').getTime() }); toast.success('Post agendado'); } }} style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem', flex: 1 }} />
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── QUICK BLOCK ──────────────────────────────────────────────────────────────
+
+type NoteItem = { id: string; text: string; at: number };
+type TaskItem = { id: string; text: string; done: boolean; at: number };
+type RecItem = { id: string; label: string; url: string; at: number };
+
+function QuickBlock({ client }: { client: string }) {
+  const key = (t: string) => `gow_${client}_${t}`;
+  const load = <T,>(t: string, def: T): T => { try { return JSON.parse(localStorage.getItem(key(t)) || '') } catch { return def; } };
+  const save = (t: string, v: any) => localStorage.setItem(key(t), JSON.stringify(v));
+
+  const [tab, setTab] = useState<'notas' | 'tarefas' | 'gravacoes'>('notas');
+  const [notes, setNotes] = useState<NoteItem[]>(() => load('notes', []));
+  const [tasks, setTasks] = useState<TaskItem[]>(() => load('tasks', []));
+  const [recs, setRecs] = useState<RecItem[]>(() => load('recs', []));
+  const [noteInput, setNoteInput] = useState('');
+  const [taskInput, setTaskInput] = useState('');
+  const [recLabel, setRecLabel] = useState('');
+  const [recUrl, setRecUrl] = useState('');
+
+  const addNote = () => { if (!noteInput.trim()) return; const n = [...notes, { id: Date.now().toString(), text: noteInput.trim(), at: Date.now() }]; setNotes(n); save('notes', n); setNoteInput(''); };
+  const delNote = (id: string) => { const n = notes.filter(x => x.id !== id); setNotes(n); save('notes', n); };
+  const addTask = () => { if (!taskInput.trim()) return; const t = [...tasks, { id: Date.now().toString(), text: taskInput.trim(), done: false, at: Date.now() }]; setTasks(t); save('tasks', t); setTaskInput(''); };
+  const toggleTask = (id: string) => { const t = tasks.map(x => x.id === id ? { ...x, done: !x.done } : x); setTasks(t); save('tasks', t); };
+  const delTask = (id: string) => { const t = tasks.filter(x => x.id !== id); setTasks(t); save('tasks', t); };
+  const addRec = () => { if (!recLabel.trim()) return; const r = [...recs, { id: Date.now().toString(), label: recLabel.trim(), url: recUrl.trim(), at: Date.now() }]; setRecs(r); save('recs', r); setRecLabel(''); setRecUrl(''); };
+  const delRec = (id: string) => { const r = recs.filter(x => x.id !== id); setRecs(r); save('recs', r); };
+
+  const tabs = [
+    { id: 'notas' as const, label: 'Anotações', count: notes.length },
+    { id: 'tarefas' as const, label: 'Tarefas', count: tasks.filter(t => !t.done).length },
+    { id: 'gravacoes' as const, label: 'Gravações', count: recs.length },
+  ];
+
+  return (
+    <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1rem', background: 'var(--bg-elevated)', borderRadius: '10px', padding: '0.25rem', width: 'fit-content' }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: '0.4rem 0.9rem', borderRadius: '7px', cursor: 'pointer', border: 'none', background: tab === t.id ? 'var(--bg)' : 'transparent', color: tab === t.id ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: '0.8rem', fontWeight: tab === t.id ? 600 : 400, display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: tab === t.id ? '0 1px 3px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.15s' }}>
+            {t.label}
+            {t.count > 0 && <span style={{ fontSize: '0.65rem', background: 'var(--bg-elevated)', borderRadius: '10px', padding: '0.05rem 0.35rem', fontWeight: 700 }}>{t.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'notas' && (
+        <div>
+          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem' }}>
+            <input type="text" placeholder="Nova anotação..." value={noteInput} onChange={e => setNoteInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addNote()} style={{ flex: 1, fontSize: '0.85rem' }} />
+            <button onClick={addNote} style={{ padding: '0.5rem 0.9rem', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>+</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            {notes.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Nenhuma anotação ainda</p>}
+            {notes.map(n => (
+              <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.6rem 0.75rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                <span style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>{n.text}</span>
+                <button onClick={() => delNote(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '0.1rem', flexShrink: 0 }}>×</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'tarefas' && (
+        <div>
+          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem' }}>
+            <input type="text" placeholder="Nova tarefa..." value={taskInput} onChange={e => setTaskInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} style={{ flex: 1, fontSize: '0.85rem' }} />
+            <button onClick={addTask} style={{ padding: '0.5rem 0.9rem', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>+</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            {tasks.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Nenhuma tarefa ainda</p>}
+            {tasks.map(t => (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', opacity: t.done ? 0.5 : 1 }}>
+                <button onClick={() => toggleTask(t.id)} style={{ width: 18, height: 18, borderRadius: '4px', border: t.done ? '1px solid #22c55e' : '1px solid var(--border-strong)', background: t.done ? '#22c55e' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}>
+                  {t.done && <span style={{ color: '#fff', fontSize: '0.7rem', fontWeight: 700 }}>✓</span>}
+                </button>
+                <span style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-primary)', textDecoration: t.done ? 'line-through' : 'none', lineHeight: 1.4 }}>{t.text}</span>
+                <button onClick={() => delTask(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '0.1rem', flexShrink: 0 }}>×</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'gravacoes' && (
+        <div>
+          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+            <input type="text" placeholder="Nome da gravação" value={recLabel} onChange={e => setRecLabel(e.target.value)} style={{ flex: '1 1 150px', fontSize: '0.85rem' }} />
+            <input type="url" placeholder="Link (opcional)" value={recUrl} onChange={e => setRecUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && addRec()} style={{ flex: '2 1 200px', fontSize: '0.85rem' }} />
+            <button onClick={addRec} style={{ padding: '0.5rem 0.9rem', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>+</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            {recs.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Nenhuma gravação ainda</p>}
+            {recs.map(r => (
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                <span style={{ fontSize: '0.85rem' }}>🎙</span>
+                {r.url ? (
+                  <a href={r.url} target="_blank" rel="noopener" style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>{r.label}</a>
+                ) : (
+                  <span style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>{r.label}</span>
+                )}
+                <button onClick={() => delRec(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '0.1rem', flexShrink: 0 }}>×</button>
               </div>
             ))}
           </div>
@@ -535,6 +576,9 @@ export default function Home({ client }: { client: ClientSlug }) {
   const postsQuery = trpc.posts.list.useQuery({ client });
   const createPost = trpc.posts.create.useMutation({
     onSuccess: () => { utils.posts.invalidate(); toast.success('Post criado'); setShowNewPost(false); },
+  });
+  const updatePost = trpc.posts.update.useMutation({
+    onSuccess: () => utils.posts.invalidate(),
   });
 
   const allPosts: Post[] = (postsQuery.data as Post[]) || [];
@@ -569,35 +613,9 @@ export default function Home({ client }: { client: ClientSlug }) {
     return base;
   }, [networkPosts]);
 
-  // Monthly gamification
-  const monthly = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const monthPosts = networkPosts.filter(
-      p => p.status === 'postado' && p.scheduledDate &&
-        new Date(p.scheduledDate) >= monthStart && new Date(p.scheduledDate) <= monthEnd
-    );
-    const count = monthPosts.length;
-    const meta = 12; const ideal = 16; const bonus = 20;
-    const pct = Math.min((count / bonus) * 100, 100);
-    let tier: 'abaixo' | 'meta' | 'ideal' | 'bonus' = 'abaixo';
-    if (count >= bonus) tier = 'bonus';
-    else if (count >= ideal) tier = 'ideal';
-    else if (count >= meta) tier = 'meta';
-    return { count, meta, ideal, bonus, pct, tier };
-  }, [networkPosts]);
-
   // Views split
   const realizadas = useMemo(() => filteredPosts.filter(p => p.status === 'postado').sort((a, b) => (b.scheduledDate || 0) - (a.scheduledDate || 0)), [filteredPosts]);
   const agendadas = useMemo(() => filteredPosts.filter(p => p.scheduledDate && p.status !== 'postado').sort((a, b) => (a.scheduledDate || 0) - (b.scheduledDate || 0)), [filteredPosts]);
-
-  const TIER_COLORS = {
-    abaixo: 'var(--text-tertiary)',
-    meta: '#22c55e',
-    ideal: '#5c7aff',
-    bonus: '#e5a00d',
-  };
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -751,63 +769,52 @@ export default function Home({ client }: { client: ClientSlug }) {
           ))}
         </div>
 
-        {/* Monthly progress */}
-        <div className="glass-sm" style={{ padding: '1.1rem 1.25rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              {monthly.tier === 'bonus' ? <Trophy size={15} color={TIER_COLORS.bonus} />
-                : monthly.tier === 'ideal' ? <Flame size={15} color={TIER_COLORS.ideal} />
-                : monthly.tier === 'meta' ? <Target size={15} color={TIER_COLORS.meta} />
-                : <TrendingUp size={15} color={TIER_COLORS.abaixo} />}
-              <div>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', lineHeight: 1.2 }}>
-                  {monthly.tier === 'bonus' ? 'Autoridade consolidada'
-                    : monthly.tier === 'ideal' ? 'Ritmo estratégico'
-                    : monthly.tier === 'meta' ? 'Meta atingida'
-                    : `${monthly.count} post${monthly.count !== 1 ? 's' : ''} este mês`}
+        {/* Meta de dias úteis */}
+        {(() => {
+          const now = new Date();
+          const y = now.getFullYear(); const m = now.getMonth();
+          const totalDays = new Date(y, m + 1, 0).getDate();
+          let businessDays = 0;
+          for (let d = 1; d <= totalDays; d++) {
+            const dow = new Date(y, m, d).getDay();
+            if (dow >= 1 && dow <= 5) businessDays++;
+          }
+          const monthStart = new Date(y, m, 1).getTime();
+          const monthEnd = new Date(y, m + 1, 0, 23, 59, 59).getTime();
+          const posted = networkPosts.filter(p => p.status === 'postado' && p.scheduledDate && p.scheduledDate >= monthStart && p.scheduledDate <= monthEnd).length;
+          const pct = Math.min((posted / businessDays) * 100, 100);
+          const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+          return (
+            <div className="glass-sm" style={{ padding: '1.1rem 1.25rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', lineHeight: 1.2 }}>
+                    {posted} de {businessDays} posts realizados
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                    Meta: 1 post por dia útil
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
+                  {monthNames[m]} {y}
                 </span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
-                  {monthly.tier === 'bonus' ? 'Presença que gera confiança'
-                    : monthly.tier === 'ideal' ? 'Consistência que constrói reputação'
-                    : monthly.tier === 'meta' ? 'Base sólida de presença'
-                    : 'Evolução do calendário mensal'}
+              </div>
+              <div style={{ position: 'relative', height: '6px', background: 'var(--border-strong)', borderRadius: '6px' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  style={{ height: '100%', borderRadius: '6px', position: 'absolute', background: pct >= 100 ? '#22c55e' : pct >= 60 ? '#5c7aff' : '#e5a00d' }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.4rem' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                  {Math.round(pct)}% da meta mensal
                 </span>
               </div>
             </div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
-              Mês de {new Date().toLocaleDateString('pt-BR', { month: 'long' })}
-            </span>
-          </div>
-
-          {/* Progress bar */}
-          <div style={{ position: 'relative', height: '6px', background: 'var(--border-strong)', borderRadius: '6px', overflow: 'visible' }}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${monthly.pct}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              style={{
-                height: '100%', borderRadius: '6px', position: 'absolute',
-                background: TIER_COLORS[monthly.tier],
-              }}
-            />
-            {/* Markers */}
-            <div title={`Meta: ${monthly.meta} posts`} style={{ position: 'absolute', left: `${(monthly.meta / monthly.bonus) * 100}%`, top: -3, width: 2, height: 12, background: TIER_COLORS.meta, borderRadius: 2, opacity: 0.5 }} />
-            <div title={`Ideal: ${monthly.ideal} posts`} style={{ position: 'absolute', left: `${(monthly.ideal / monthly.bonus) * 100}%`, top: -3, width: 2, height: 12, background: TIER_COLORS.ideal, borderRadius: 2, opacity: 0.5 }} />
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
-            {[
-              { icon: <Target size={10} />, label: `Meta: ${monthly.meta}`, color: TIER_COLORS.meta },
-              { icon: <Flame size={10} />, label: `Ideal: ${monthly.ideal}`, color: TIER_COLORS.ideal },
-              { icon: <Trophy size={10} />, label: `Bônus: ${monthly.bonus}+`, color: TIER_COLORS.bonus },
-            ].map(({ icon, label, color }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color }}>
-                {icon}
-                <span style={{ fontSize: '0.65rem', fontWeight: 500 }}>{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+          );
+        })()}
 
         {/* ═══ VIEW TABS ═══ */}
         <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.25rem', background: 'var(--bg-elevated)', borderRadius: '10px', padding: '0.25rem' }}>
@@ -849,6 +856,7 @@ export default function Home({ client }: { client: ClientSlug }) {
                 posts={filteredPosts}
                 onSelectPost={setSelectedPost}
                 onNewPost={() => setShowNewPost(true)}
+                updatePost={updatePost}
               />
             </motion.div>
           )}
@@ -901,6 +909,9 @@ export default function Home({ client }: { client: ClientSlug }) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ═══ BLOCO DE SUPORTE ═══ */}
+        <QuickBlock client={client} />
 
       </main>
 

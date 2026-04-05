@@ -22,6 +22,8 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
     () => localStorage.getItem('gow_author') || ''
   );
   const [commentText, setCommentText] = useState('');
+  const [showAjuste, setShowAjuste] = useState(false);
+  const [ajusteText, setAjusteText] = useState('');
 
   useEffect(() => {
     if (post) setEditingPost({ ...post });
@@ -108,6 +110,24 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
   const updateField = <K extends keyof Post>(field: K, value: Post[K]) => {
     setEditingPost(prev => prev ? { ...prev, [field]: value } : null);
   };
+
+  const handleAprovar = useCallback(() => {
+    if (!post) return;
+    createComment.mutate({ postId: post.id, authorName: commentAuthor || 'Cliente', content: '✓ Aprovado' });
+    updatePost.mutate({ id: post.id, status: 'aprovado' });
+    setEditingPost(prev => prev ? { ...prev, status: 'aprovado' } : null);
+    toast.success('Post aprovado!');
+  }, [post, commentAuthor, createComment, updatePost]);
+
+  const handleAjuste = useCallback(() => {
+    if (!post || !ajusteText.trim()) return;
+    createComment.mutate({ postId: post.id, authorName: commentAuthor || 'Cliente', content: `↩ Ajuste: ${ajusteText.trim()}` });
+    updatePost.mutate({ id: post.id, status: 'em_aprovacao' });
+    setEditingPost(prev => prev ? { ...prev, status: 'em_aprovacao' } : null);
+    setShowAjuste(false);
+    setAjusteText('');
+    toast.success('Solicitação de ajuste enviada');
+  }, [post, ajusteText, commentAuthor, createComment, updatePost]);
 
   if (!post || !editingPost) return null;
 
@@ -289,10 +309,10 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
 
                 {/* Conteúdo */}
                 <div>
-                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Conteúdo / Briefing</span>
+                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Copy</span>
                   <textarea
                     rows={3}
-                    placeholder="Descreva o conteúdo do post..."
+                    placeholder="Escreva o copy do post..."
                     value={editingPost.conteudo || ''}
                     onChange={e => updateField('conteudo', e.target.value)}
                     style={{ width: '100%', fontSize: '0.85rem', resize: 'vertical' }}
@@ -405,6 +425,29 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                           />
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* Aprovação */}
+              <section style={{ marginTop: '1rem', padding: '1rem', borderRadius: '12px', background: 'rgba(92,122,255,0.04)', border: '1px solid rgba(92,122,255,0.15)' }}>
+                <span className="label" style={{ display: 'block', marginBottom: '0.75rem' }}>Aprovação</span>
+                {!showAjuste ? (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={handleAprovar} style={{ flex: 1, padding: '0.6rem', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', cursor: 'pointer', color: '#22c55e', fontWeight: 600, fontSize: '0.85rem' }}>
+                      ✓ Aprovar
+                    </button>
+                    <button onClick={() => setShowAjuste(true)} style={{ flex: 1, padding: '0.6rem', background: 'rgba(229,160,13,0.08)', border: '1px solid rgba(229,160,13,0.25)', borderRadius: '8px', cursor: 'pointer', color: '#e5a00d', fontWeight: 600, fontSize: '0.85rem' }}>
+                      ↩ Solicitar ajuste
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <textarea rows={3} placeholder="Quais ajustes você quer?" value={ajusteText} onChange={e => setAjusteText(e.target.value)} style={{ width: '100%', fontSize: '0.85rem', resize: 'none' }} />
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button onClick={() => setShowAjuste(false)} style={{ flex: 1, padding: '0.5rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Cancelar</button>
+                      <button onClick={handleAjuste} disabled={!ajusteText.trim()} style={{ flex: 2, padding: '0.5rem', background: '#e5a00d', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#fff', fontWeight: 600, fontSize: '0.82rem', opacity: ajusteText.trim() ? 1 : 0.5 }}>Enviar solicitação</button>
                     </div>
                   </div>
                 )}

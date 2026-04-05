@@ -14,8 +14,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return "light";
     const stored = localStorage.getItem("gow-theme");
     if (stored === "dark" || stored === "light") return stored;
-    // Respect system preference on first visit
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return "light"; // sempre começa em light
   });
 
   useEffect(() => {
