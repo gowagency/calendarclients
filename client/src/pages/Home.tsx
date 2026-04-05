@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Plus, Search, TrendingUp,
   CalendarDays, CheckCircle2, Clock3,
-  Sun, Moon, LayoutGrid,
+  Sun, Moon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
@@ -25,7 +25,7 @@ const CLIENT_LABELS: Record<ClientSlug, string> = {
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
-type View = 'calendario' | 'realizadas' | 'agendadas' | 'feed';
+type View = 'calendario' | 'agendados' | 'postados';
 type NetworkId = typeof NETWORKS[number]['id'];
 
 // ─── NEW POST MODAL ────────────────────────────────────────────────────────────
@@ -713,91 +713,6 @@ function QuickBlock({ client }: { client: string }) {
   );
 }
 
-// ─── FEED VIEW ────────────────────────────────────────────────────────────────
-
-function FeedView({ posts, onSelectPost }: { posts: Post[]; onSelectPost: (p: Post) => void }) {
-  // Posts com capa, mais recentes primeiro
-  const feedPosts = useMemo(() =>
-    [...posts]
-      .filter(p => p.coverImageUrl && p.scheduledDate)
-      .sort((a, b) => (b.scheduledDate || 0) - (a.scheduledDate || 0))
-      .slice(0, 9),
-    [posts]
-  );
-
-  if (feedPosts.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-elevated)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📸</div>
-        <h3 style={{ fontFamily: 'DM Sans, system-ui', fontSize: '1rem', fontWeight: 400, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>Nenhum criativo no feed</h3>
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', maxWidth: '320px', margin: '0 auto' }}>
-          Adicione uma capa nos posts do calendário para simular o feed do Instagram.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <span style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>
-          Simulação do feed · {feedPosts.length} post{feedPosts.length !== 1 ? 's' : ''} mais recentes
-        </span>
-      </div>
-      {/* Grid 3 colunas estilo Instagram */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px', maxWidth: '600px' }}>
-        {feedPosts.map(p => {
-          const network = NETWORK_CONFIG[p.socialNetwork];
-          return (
-            <button
-              key={p.id}
-              onClick={() => onSelectPost(p)}
-              style={{
-                position: 'relative',
-                aspectRatio: '4/5',
-                background: 'var(--bg-elevated)',
-                border: 'none',
-                cursor: 'pointer',
-                overflow: 'hidden',
-                padding: 0,
-              }}
-            >
-              <img
-                src={p.coverImageUrl!}
-                alt={p.titulo}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
-              {/* Overlay on hover */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'rgba(0,0,0,0)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.35)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0)')}
-              >
-                <span style={{ color: '#fff', fontSize: '0.7rem', fontWeight: 600, opacity: 0, transition: 'opacity 0.2s', textAlign: 'center', padding: '0.25rem' }}>
-                  {p.titulo.length > 40 ? p.titulo.slice(0, 40) + '…' : p.titulo}
-                </span>
-              </div>
-              {/* Network badge */}
-              <div style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {network?.Icon && <network.Icon size={10} style={{ color: '#fff' }} />}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      {feedPosts.length < 9 && (
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.75rem', fontStyle: 'italic' }}>
-          {9 - feedPosts.length} slot{9 - feedPosts.length !== 1 ? 's' : ''} restante{9 - feedPosts.length !== 1 ? 's' : ''} · adicione capas nos posts para completar o feed
-        </p>
-      )}
-    </div>
-  );
-}
-
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 export default function Home({ client }: { client: ClientSlug }) {
@@ -852,8 +767,8 @@ export default function Home({ client }: { client: ClientSlug }) {
   }, [networkPosts]);
 
   // Views split
-  const realizadas = useMemo(() => filteredPosts.filter(p => p.status === 'postado').sort((a, b) => (b.scheduledDate || 0) - (a.scheduledDate || 0)), [filteredPosts]);
-  const agendadas = useMemo(() => filteredPosts.filter(p => p.scheduledDate && p.status !== 'postado').sort((a, b) => (a.scheduledDate || 0) - (b.scheduledDate || 0)), [filteredPosts]);
+  const postados  = useMemo(() => filteredPosts.filter(p => p.status === 'postado').sort((a, b) => (b.scheduledDate || 0) - (a.scheduledDate || 0)), [filteredPosts]);
+  const agendados = useMemo(() => filteredPosts.filter(p => p.scheduledDate && p.status !== 'postado').sort((a, b) => (a.scheduledDate || 0) - (b.scheduledDate || 0)), [filteredPosts]);
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -1089,10 +1004,9 @@ export default function Home({ client }: { client: ClientSlug }) {
         {/* ═══ VIEW TABS ═══ */}
         <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.25rem', background: 'var(--bg-elevated)', borderRadius: '10px', padding: '0.25rem' }}>
           {([
-            { id: 'calendario' as View, label: 'Calendário', icon: <CalendarDays size={14} /> },
-            { id: 'realizadas' as View, label: `Realizadas (${realizadas.length})`, icon: <CheckCircle2 size={14} /> },
-            { id: 'agendadas' as View, label: `Agendadas (${agendadas.length})`, icon: <Clock3 size={14} /> },
-            { id: 'feed' as View, label: 'Feed', icon: <LayoutGrid size={14} /> },
+            { id: 'calendario' as View, label: 'Calendário',              icon: <CalendarDays size={14} /> },
+            { id: 'agendados'  as View, label: `Agendados (${agendados.length})`,  icon: <Clock3 size={14} /> },
+            { id: 'postados'   as View, label: `Postados (${postados.length})`,    icon: <CheckCircle2 size={14} /> },
           ]).map(tab => (
             <button
               key={tab.id}
@@ -1132,39 +1046,15 @@ export default function Home({ client }: { client: ClientSlug }) {
             </motion.div>
           )}
 
-          {activeView === 'realizadas' && (
+          {activeView === 'agendados' && (
             <motion.div
-              key="realizadas"
+              key="agendados"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {realizadas.length === 0 ? (
-                <EmptyState
-                  icon={<CheckCircle2 size={28} style={{ color: 'var(--text-tertiary)' }} />}
-                  title="Nenhum post realizado"
-                  desc={selectedNetwork === 'all' ? 'Posts com status "Postado" aparecerão aqui.' : `Ainda sem posts publicados no ${NETWORK_CONFIG[selectedNetwork]?.label}.`}
-                />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {realizadas.map(p => (
-                    <PostCard key={p.id} post={p} onClick={() => setSelectedPost(p)} />
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {activeView === 'agendadas' && (
-            <motion.div
-              key="agendadas"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {agendadas.length === 0 ? (
+              {agendados.length === 0 ? (
                 <EmptyState
                   icon={<Clock3 size={28} style={{ color: 'var(--text-tertiary)' }} />}
                   title="Nenhum post agendado"
@@ -1172,7 +1062,7 @@ export default function Home({ client }: { client: ClientSlug }) {
                 />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {agendadas.map(p => (
+                  {agendados.map(p => (
                     <PostCard key={p.id} post={p} onClick={() => setSelectedPost(p)} />
                   ))}
                 </div>
@@ -1180,9 +1070,27 @@ export default function Home({ client }: { client: ClientSlug }) {
             </motion.div>
           )}
 
-          {activeView === 'feed' && (
-            <motion.div key="feed" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <FeedView posts={filteredPosts} onSelectPost={setSelectedPost} />
+          {activeView === 'postados' && (
+            <motion.div
+              key="postados"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {postados.length === 0 ? (
+                <EmptyState
+                  icon={<CheckCircle2 size={28} style={{ color: 'var(--text-tertiary)' }} />}
+                  title="Nenhum post publicado"
+                  desc={selectedNetwork === 'all' ? 'Posts com status "Postado" aparecerão aqui.' : `Ainda sem posts publicados no ${NETWORK_CONFIG[selectedNetwork]?.label}.`}
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {postados.map(p => (
+                    <PostCard key={p.id} post={p} onClick={() => setSelectedPost(p)} />
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

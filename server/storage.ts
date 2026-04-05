@@ -1,6 +1,6 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ENV } from "./_core/env";
+import { driveUpload, driveAvailable } from "./googleDrive";
 
 let _s3: S3Client | null = null;
 
@@ -32,6 +32,41 @@ export async function storagePut(
   );
   const url = `https://${ENV.awsBucket}.s3.${ENV.awsRegion}.amazonaws.com/${key}`;
   return { url };
+}
+
+/**
+ * Upload a post cover or attachment.
+ * Prefers Google Drive when configured, falls back to S3, throws if neither is available.
+ */
+export async function storageUploadPostFile(opts: {
+  buffer: Buffer;
+  fileName: string;
+  mimeType: string;
+  scheduledDate?: number | null;
+  sortOrder?: number | null;
+  postTitle?: string;
+}): Promise<{ url: string }> {
+  // 1. Try Google Drive first
+  if (driveAvailable()) {
+    return driveUpload(opts);
+  }
+
+  // 2. Fall back to S3
+  const s3 = getS3();
+  if (s3) {
+    const key = `gow-calendar/uploads/${Date.now()}-${opts.fileName}`;
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: ENV.awsBucket,
+        Key: key,
+        Body: opts.buffer,
+        ContentType: opts.mimeType,
+      })
+    );
+    return { url: `https://${ENV.awsBucket}.s3.${ENV.awsRegion}.amazonaws.com/${key}` };
+  }
+
+  throw new Error("Nenhum armazenamento configurado. Configure GOOGLE_SERVICE_ACCOUNT_JSON + GOOGLE_DRIVE_FOLDER_ID no Railway.");
 }
 
 export async function storageDelete(key: string): Promise<void> {

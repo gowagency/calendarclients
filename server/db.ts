@@ -55,6 +55,13 @@ export async function getPostStats(client: string) {
     .groupBy(posts.status, posts.socialNetwork);
 }
 
+export async function getPostById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function createPost(post: InsertPost) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
