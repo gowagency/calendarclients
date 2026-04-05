@@ -79,17 +79,23 @@ export const FORMAT_OPTIONS: Record<string, string[]> = {
  * Color per format — used in calendar cards to visually distinguish content type.
  * Spotify posts always use spotify green regardless of formato.
  */
+// Paleta Aliny Rayze: chocolate • camel • taupe • sage green • terracotta
 export const FORMAT_COLOR: Record<string, { color: string; bg: string; border: string }> = {
-  'Reels':    { color: '#E1306C', bg: 'rgba(225,48,108,0.13)',  border: 'rgba(225,48,108,0.35)' },
-  'Carrossel':{ color: '#D97706', bg: 'rgba(217,119,6,0.13)',   border: 'rgba(217,119,6,0.35)'  },
-  'Foto':     { color: '#0891B2', bg: 'rgba(8,145,178,0.13)',   border: 'rgba(8,145,178,0.35)'  },
-  'Estático': { color: '#7C3AED', bg: 'rgba(124,58,237,0.13)',  border: 'rgba(124,58,237,0.35)' },
-  'Story':    { color: '#DB2777', bg: 'rgba(219,39,119,0.13)',  border: 'rgba(219,39,119,0.35)' },
-  // legacy "Post" maps to Foto color
-  'Post':     { color: '#0891B2', bg: 'rgba(8,145,178,0.13)',   border: 'rgba(8,145,178,0.35)'  },
-  // Spotify formats
-  'Episódio': { color: '#16A34A', bg: 'rgba(22,163,74,0.13)',   border: 'rgba(22,163,74,0.35)'  },
-  'Trailer':  { color: '#16A34A', bg: 'rgba(22,163,74,0.13)',   border: 'rgba(22,163,74,0.35)'  },
+  // Reels — destaque máximo: chocolate escuro
+  'Reels':    { color: '#7B3A12', bg: 'rgba(123,58,18,0.14)',   border: 'rgba(123,58,18,0.32)'  },
+  // Carrossel — bege camel
+  'Carrossel':{ color: '#A07848', bg: 'rgba(160,120,72,0.14)',  border: 'rgba(160,120,72,0.32)' },
+  // Foto — taupe claro/neutro quente
+  'Foto':     { color: '#8B8177', bg: 'rgba(139,129,119,0.12)', border: 'rgba(139,129,119,0.28)'},
+  // Estático — sage green suave
+  'Estático': { color: '#6B8A6E', bg: 'rgba(107,138,110,0.13)', border: 'rgba(107,138,110,0.30)'},
+  // Story — terracotta rosado
+  'Story':    { color: '#A4735E', bg: 'rgba(164,115,94,0.13)',  border: 'rgba(164,115,94,0.30)' },
+  // Post (legado) → mesmo que Foto
+  'Post':     { color: '#8B8177', bg: 'rgba(139,129,119,0.12)', border: 'rgba(139,129,119,0.28)'},
+  // Spotify — sage green (paleta da marca)
+  'Episódio': { color: '#6B8A6E', bg: 'rgba(107,138,110,0.13)', border: 'rgba(107,138,110,0.30)'},
+  'Trailer':  { color: '#6B8A6E', bg: 'rgba(107,138,110,0.13)', border: 'rgba(107,138,110,0.30)'},
   // fallback
   '_default': { color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border)' },
 };
@@ -101,12 +107,13 @@ export function getFormatColor(formato: string, socialNetwork?: string) {
 
 // ─── PILARES DE CONTEÚDO ───────────────────────────────────────────────────
 
+// Pilares — paleta Aliny Rayze: tons terrosos, sage, bege
 export const PILARES = [
-  { id: 'estrutura',                 label: 'Estrutura',                  color: '#F59E0B' },
-  { id: 'consciencia',               label: 'Consciência',                color: '#3B82F6' },
-  { id: 'acolhimento_adulto',        label: 'Acolhimento Adulto',         color: '#22C55E' },
-  { id: 'estetica_da_ordem',         label: 'Estética da Ordem',          color: '#EC4899' },
-  { id: 'espiritualidade_implicita', label: 'Espiritualidade Implícita',  color: '#8B5CF6' },
+  { id: 'estrutura',                 label: 'Estrutura',                  color: '#7B3A12' }, // chocolate
+  { id: 'consciencia',               label: 'Consciência',                color: '#6B8A6E' }, // sage green
+  { id: 'acolhimento_adulto',        label: 'Acolhimento Adulto',         color: '#A07848' }, // camel
+  { id: 'estetica_da_ordem',         label: 'Estética da Ordem',          color: '#8B8177' }, // taupe
+  { id: 'espiritualidade_implicita', label: 'Espiritualidade Implícita',  color: '#A4735E' }, // terracotta
 ] as const;
 
 export type PilarId = typeof PILARES[number]['id'];

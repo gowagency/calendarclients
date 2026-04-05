@@ -514,15 +514,15 @@ type ProdTask = {
   createdAt: number;
 };
 
-// Pill style: subtle fill + tinted border + colored text
+// Pill style — paleta Aliny Rayze: terrosos, sage, camel
 const PROD_STATUS_CONFIG: Record<ProdStatus, { label: string; bg: string; border: string; color: string }> = {
-  nao_iniciado: { label: 'Não iniciado', bg: 'rgba(136,135,128,0.10)', border: 'rgba(136,135,128,0.25)', color: '#888780' },
-  em_andamento: { label: 'Em andamento', bg: 'rgba(239,159,39,0.12)',  border: 'rgba(239,159,39,0.25)',  color: '#EF9F27' },
-  em_aprovacao: { label: 'Em aprovação', bg: 'rgba(160,132,92,0.12)',  border: 'rgba(160,132,92,0.25)',  color: '#A0845C' },
-  aprovado:     { label: 'Aprovado',     bg: 'rgba(55,138,221,0.12)',  border: 'rgba(55,138,221,0.25)',  color: '#378ADD' },
-  em_gravacao:  { label: 'Em Gravação',  bg: 'rgba(216,90,48,0.12)',   border: 'rgba(216,90,48,0.25)',   color: '#D85A30' },
-  gravado:      { label: 'Gravado',      bg: 'rgba(99,153,34,0.12)',   border: 'rgba(99,153,34,0.25)',   color: '#639922' },
-  postado:      { label: 'Postado',      bg: 'rgba(29,158,117,0.12)',  border: 'rgba(29,158,117,0.25)',  color: '#1D9E75' },
+  nao_iniciado: { label: 'Não iniciado', bg: 'rgba(139,129,119,0.10)', border: 'rgba(139,129,119,0.25)', color: '#8B8177' }, // taupe
+  em_andamento: { label: 'Em andamento', bg: 'rgba(160,120,72,0.12)',  border: 'rgba(160,120,72,0.28)',  color: '#A07848' }, // camel
+  em_aprovacao: { label: 'Em aprovação', bg: 'rgba(164,115,94,0.12)',  border: 'rgba(164,115,94,0.28)',  color: '#A4735E' }, // terracotta
+  aprovado:     { label: 'Aprovado',     bg: 'rgba(107,138,110,0.12)', border: 'rgba(107,138,110,0.28)', color: '#6B8A6E' }, // sage green
+  em_gravacao:  { label: 'Em Gravação',  bg: 'rgba(123,58,18,0.10)',   border: 'rgba(123,58,18,0.25)',   color: '#7B3A12' }, // chocolate
+  gravado:      { label: 'Gravado',      bg: 'rgba(107,138,110,0.18)', border: 'rgba(107,138,110,0.36)', color: '#4E7052' }, // sage escuro
+  postado:      { label: 'Postado',      bg: 'rgba(123,58,18,0.16)',   border: 'rgba(123,58,18,0.32)',   color: '#5C2B0A' }, // chocolate escuro
 };
 
 const PROD_STATUS_ORDER: ProdStatus[] = [
@@ -530,9 +530,9 @@ const PROD_STATUS_ORDER: ProdStatus[] = [
 ];
 
 const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
-  reels:     { label: 'Reels',     color: '#D85A30' },
-  narracao:  { label: 'Narração',  color: '#378ADD' },
-  carrossel: { label: 'Carrossel', color: '#A0845C' },
+  reels:     { label: 'Reels',     color: '#7B3A12' }, // chocolate — destaque
+  narracao:  { label: 'Narração',  color: '#8B8177' }, // taupe neutro
+  carrossel: { label: 'Carrossel', color: '#A07848' }, // camel bege
 };
 
 const EMPTY_TASK: Omit<ProdTask, 'id' | 'createdAt'> = {
