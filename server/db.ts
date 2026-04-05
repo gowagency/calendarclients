@@ -21,8 +21,50 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
     await db.execute(sql`ALTER TABLE attachments MODIFY COLUMN fileUrl MEDIUMTEXT`);
     console.log("[DB] Column migrations applied");
   } catch (e) {
-    // Safe to ignore — column already correct or table doesn't exist yet
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));
+  }
+
+  // Seed Aliny Rayze March 2026 history
+  try {
+    const noon = (d: string) => new Date(d + "T12:00:00-03:00").getTime();
+    const marchStart = new Date("2026-03-01T00:00:00Z").getTime();
+    const marchEnd   = new Date("2026-04-01T00:00:00Z").getTime();
+
+    const existing = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(and(eq(posts.client, "alinyrayze"), gte(posts.scheduledDate, marchStart), lte(posts.scheduledDate, marchEnd)))
+      .limit(1);
+
+    if (existing.length === 0) {
+      const march: InsertPost[] = [
+        { socialNetwork: "instagram", formato: "Reels",    status: "postado", scheduledDate: noon("2026-03-02"), sortOrder: 101, titulo: "Café sem açúcar",                                           legenda: "O amargo não é o problema. É o sinal de que algo está amadurecendo. Amadurecer tem gosto de renúncia no início. Depois, tem gosto de firmeza..." },
+        { socialNetwork: "instagram", formato: "Post",     status: "postado", scheduledDate: noon("2026-03-03"), sortOrder: 102, titulo: "Espero que você aprenda isso logo",                        legenda: "Espero que você aprenda isso logo: Quanto mais direta, amorosa e firme você consegue ser, mais leve a sua vida se torna..." },
+        { socialNetwork: "instagram", formato: "Reels",    status: "postado", scheduledDate: noon("2026-03-04"), sortOrder: 103, titulo: "si mesma",                                                  legenda: "Você não é o que você carrega. Você está com isso. Tem uma diferença enorme entre as duas coisas..." },
+        { socialNetwork: "instagram", formato: "Post",     status: "postado", scheduledDate: noon("2026-03-05"), sortOrder: 104, titulo: "Amizade na vida adulta é diferente",                        legenda: "Amizade na vida adulta é diferente, talvez você já tenha percebido. A gente não se vê todos os dias. Não se fala o tempo todo..." },
+        { socialNetwork: "instagram", formato: "Reels",    status: "postado", scheduledDate: noon("2026-03-06"), sortOrder: 105, titulo: "vez que eu fui",                                            legenda: "Às vezes a gente aprende cedo demais a esconder o que dói. Algumas crianças aprendem a não dar trabalho..." },
+        { socialNetwork: "instagram", formato: "Reels",    status: "postado", scheduledDate: noon("2026-03-08"), sortOrder: 106, titulo: "Collab Dia Internacional da Mulher (@juniorlopescontador)", legenda: "Casei com uma mulher que não gosta de ganhar presentes... Ela gosta de ganhar momentos! Feliz Dia Internacional da Mulher, meu amor @alinyrayze" },
+        { socialNetwork: "instagram", formato: "Post",     status: "postado", scheduledDate: noon("2026-03-08"), sortOrder: 107, titulo: "Feminilidade",                                              legenda: "Mas quais características, afinal? A cultura tenta nos vender um padrão: ser mais delicada, mais receptiva, mais 'feminina'... Feminilidade não é um padrão a alcançar. É uma essência a reconhecer." },
+        { socialNetwork: "instagram", formato: "Reels",    status: "postado", scheduledDate: noon("2026-03-10"), sortOrder: 108, titulo: "teve uma mãe",                                              legenda: "Você não vai ter uma mãe diferente. Essa é a parte que dói. Mas é também a parte que liberta..." },
+        { socialNetwork: "instagram", formato: "Post",     status: "postado", scheduledDate: noon("2026-03-11"), sortOrder: 109, titulo: "Como é, para você, achar que não merece ser feliz?",        legenda: "Como é, para você, achar que não merece ser feliz? Você conquista algo e, logo em seguida, arruma um problema em outra área..." },
+        { socialNetwork: "instagram", formato: "Carrossel",status: "postado", scheduledDate: noon("2026-03-13"), sortOrder: 110, titulo: "Isso não era sobre água.",                                  legenda: "O que você tem pedido, quando na verdade precisa de outra coisa? O que me chamou atenção nesse momento com o José Miguel foi a clareza com que ele reconheceu." },
+        { socialNetwork: "instagram", formato: "Reels",    status: "postado", scheduledDate: noon("2026-03-17"), sortOrder: 111, titulo: "As pessoas querem viver uma grande história de amor",       legenda: "As pessoas querem viver uma grande história de amor. Mas estão entrando nos relacionamentos cada vez mais individualistas..." },
+        { socialNetwork: "instagram", formato: "Carrossel",status: "postado", scheduledDate: noon("2026-03-18"), sortOrder: 112, titulo: "Coisas que eu faço mesmo sendo psicanalista...",           legenda: "Ser psicanalista não me faz diferente de você. Me faz mais consciente do que acontece dentro de mim, mas não me livra de sentir. Não me livra de errar. Não me livra de ser humana." },
+        { socialNetwork: "instagram", formato: "Post",     status: "postado", scheduledDate: noon("2026-03-19"), sortOrder: 113, titulo: "Por muito tempo, eu confundi amor com ser necessária",     legenda: "Eu era líder de setor em uma grande empresa. E lembro de um supervisor que sempre dizia: 'Um bom líder é aquele que não faz falta.'" },
+        { socialNetwork: "instagram", formato: "Reels",    status: "postado", scheduledDate: noon("2026-03-20"), sortOrder: 114, titulo: "Vivendo a mesma coisa!",                                   legenda: "Tem uma diferença entre errar sem saber e errar sabendo. O segundo dói de um jeito diferente..." },
+        { socialNetwork: "instagram", formato: "Post",     status: "postado", scheduledDate: noon("2026-03-23"), sortOrder: 115, titulo: "Se hoje fosse o seu último dia de vida...",                 legenda: "Se hoje fosse o seu último dia de vida, e as pessoas mais importantes fossem até você, te agradecer por algo. Pelo que elas iriam te agradecer?" },
+        { socialNetwork: "instagram", formato: "Carrossel",status: "postado", scheduledDate: noon("2026-03-24"), sortOrder: 116, titulo: "Quando ficar quieta parece mais seguro do que falar",      legenda: "O silêncio que te protege também te apaga." },
+        { socialNetwork: "instagram", formato: "Carrossel",status: "postado", scheduledDate: noon("2026-03-26"), sortOrder: 117, titulo: "O que muda no relacionamento quando vocês decidem ter filhos?", legenda: "O amor que sobrevive à maternidade não é o mais bonito. É o mais real." },
+        { socialNetwork: "instagram", formato: "Reels",    status: "postado", scheduledDate: noon("2026-03-27"), sortOrder: 118, titulo: "não aceito viver uma vida no escuro",                      legenda: "Eu cresci tentando ser boa o suficiente pra não ser ferida, tentando entender o que ninguém me explicou..." },
+        { socialNetwork: "instagram", formato: "Reels",    status: "postado", scheduledDate: noon("2026-03-31"), sortOrder: 119, titulo: "Qual é a finalidade do que você quer?",                   legenda: "Essa escolha simples dos meus filhos dormirem cedo me ensinou uma das coisas mais importantes da vida adulta: toda escolha tem um preço..." },
+      ];
+      for (const p of march) {
+        await db.insert(posts).values({ ...p, client: "alinyrayze" });
+      }
+      console.log("[DB] Seeded Aliny Rayze March 2026 — 19 posts");
+    }
+  } catch (e) {
+    console.warn("[DB] March 2026 seed failed:", (e as Error).message?.slice(0, 120));
   }
 }
 
