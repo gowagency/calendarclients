@@ -456,18 +456,25 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost }: { posts: P
 
 // ─── QUICK BLOCK ──────────────────────────────────────────────────────────────
 
-type NoteItem = { id: string; text: string; at: number };
-type RecItem  = { id: string; label: string; url: string; at: number };
-
-type ProdStatus = 'nao_iniciado' | 'em_aprovacao' | 'aprovado';
+type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'em_aprovacao' | 'aprovado' | 'em_gravacao' | 'gravado' | 'postado';
 type ProdItem   = { text: string; status: ProdStatus; obs: string };
 type ProdData   = { reels: ProdItem; narracao: ProdItem; carrossel: ProdItem };
 
+// Pill style: subtle fill + tinted border + colored text
 const PROD_STATUS_CONFIG: Record<ProdStatus, { label: string; bg: string; border: string; color: string }> = {
-  nao_iniciado: { label: 'Não iniciado', bg: '#f4f4f4',     border: '#d4d4d4', color: '#888888' },
-  em_aprovacao: { label: 'Em aprovação', bg: '#fef9ec',     border: '#f5d97a', color: '#b07d0a' },
-  aprovado:     { label: 'Aprovado',     bg: '#f0faf4',     border: '#86efac', color: '#16a34a' },
+  nao_iniciado: { label: 'Não iniciado', bg: 'rgba(136,135,128,0.10)', border: 'rgba(136,135,128,0.25)', color: '#888780' },
+  em_andamento: { label: 'Em andamento', bg: 'rgba(239,159,39,0.12)',  border: 'rgba(239,159,39,0.25)',  color: '#EF9F27' },
+  em_aprovacao: { label: 'Em aprovação', bg: 'rgba(160,132,92,0.12)',  border: 'rgba(160,132,92,0.25)',  color: '#A0845C' },
+  aprovado:     { label: 'Aprovado',     bg: 'rgba(55,138,221,0.12)',  border: 'rgba(55,138,221,0.25)',  color: '#378ADD' },
+  em_gravacao:  { label: 'Em Gravação',  bg: 'rgba(216,90,48,0.12)',   border: 'rgba(216,90,48,0.25)',   color: '#D85A30' },
+  gravado:      { label: 'Gravado',      bg: 'rgba(99,153,34,0.12)',   border: 'rgba(99,153,34,0.25)',   color: '#639922' },
+  postado:      { label: 'Postado',      bg: 'rgba(29,158,117,0.12)',  border: 'rgba(29,158,117,0.25)',  color: '#1D9E75' },
 };
+
+// Ordered for display
+const PROD_STATUS_ORDER: ProdStatus[] = [
+  'nao_iniciado', 'em_andamento', 'em_aprovacao', 'aprovado', 'em_gravacao', 'gravado', 'postado',
+];
 
 const EMPTY_PROD: ProdItem = { text: '', status: 'nao_iniciado', obs: '' };
 const DEFAULT_PROD: ProdData = { reels: { ...EMPTY_PROD }, narracao: { ...EMPTY_PROD }, carrossel: { ...EMPTY_PROD } };
@@ -477,19 +484,8 @@ function QuickBlock({ client }: { client: string }) {
   const load = <T,>(t: string, def: T): T => { try { return JSON.parse(localStorage.getItem(key(t)) || '') } catch { return def; } };
   const save = (t: string, v: any) => localStorage.setItem(key(t), JSON.stringify(v));
 
-  const [tab,   setTab]   = useState<'notas' | 'producao' | 'gravacoes'>('notas');
-  const [notes, setNotes] = useState<NoteItem[]>(() => load('notes', []));
-  const [recs,  setRecs]  = useState<RecItem[]>(() => load('recs', []));
-  const [prod,  setProd]  = useState<ProdData>(() => load('prod', DEFAULT_PROD));
+  const [prod,    setProd]    = useState<ProdData>(() => load('prod', DEFAULT_PROD));
   const [prodTab, setProdTab] = useState<keyof ProdData>('reels');
-  const [noteInput, setNoteInput] = useState('');
-  const [recLabel,  setRecLabel]  = useState('');
-  const [recUrl,    setRecUrl]    = useState('');
-
-  const addNote = () => { if (!noteInput.trim()) return; const n = [...notes, { id: Date.now().toString(), text: noteInput.trim(), at: Date.now() }]; setNotes(n); save('notes', n); setNoteInput(''); };
-  const delNote = (id: string) => { const n = notes.filter(x => x.id !== id); setNotes(n); save('notes', n); };
-  const addRec  = () => { if (!recLabel.trim()) return; const r = [...recs, { id: Date.now().toString(), label: recLabel.trim(), url: recUrl.trim(), at: Date.now() }]; setRecs(r); save('recs', r); setRecLabel(''); setRecUrl(''); };
-  const delRec  = (id: string) => { const r = recs.filter(x => x.id !== id); setRecs(r); save('recs', r); };
 
   const updateProd = (field: keyof ProdItem, value: string) => {
     const updated = { ...prod, [prodTab]: { ...prod[prodTab], [field]: value } };
@@ -502,121 +498,84 @@ function QuickBlock({ client }: { client: string }) {
     { id: 'carrossel', label: 'Carrossel' },
   ];
 
-  const mainTabs = [
-    { id: 'notas'     as const, label: 'Anotações',  count: notes.length },
-    { id: 'producao'  as const, label: 'Produção',   count: 0 },
-    { id: 'gravacoes' as const, label: 'Gravações',  count: recs.length },
-  ];
-
   const current = prod[prodTab];
   const sc = PROD_STATUS_CONFIG[current.status];
 
   return (
     <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
 
-      {/* Main tabs */}
-      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1rem', background: 'var(--bg-elevated)', borderRadius: '10px', padding: '0.25rem', width: 'fit-content' }}>
-        {mainTabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: '0.4rem 0.9rem', borderRadius: '7px', cursor: 'pointer', border: 'none', background: tab === t.id ? 'var(--bg)' : 'transparent', color: tab === t.id ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: '0.8rem', fontWeight: tab === t.id ? 600 : 400, display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: tab === t.id ? '0 1px 3px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.15s' }}>
-            {t.label}
-            {t.count > 0 && <span style={{ fontSize: '0.65rem', background: 'var(--bg-secondary)', borderRadius: '10px', padding: '0.05rem 0.35rem', fontWeight: 700 }}>{t.count}</span>}
-          </button>
-        ))}
+      {/* Header */}
+      <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>Produção</span>
       </div>
 
-      {/* ── ANOTAÇÕES ── */}
-      {tab === 'notas' && (
-        <div>
-          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem' }}>
-            <input type="text" placeholder="Nova anotação..." value={noteInput} onChange={e => setNoteInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addNote()} style={{ flex: 1, fontSize: '0.85rem' }} />
-            <button onClick={addNote} style={{ padding: '0.5rem 0.9rem', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>+</button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            {notes.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Nenhuma anotação ainda</p>}
-            {notes.map(n => (
-              <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.6rem 0.75rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                <span style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>{n.text}</span>
-                <button onClick={() => delNote(n.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '0.1rem', flexShrink: 0 }}>×</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Sub-tabs: Reels / Narração / Carrossel */}
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+        {prodTabs.map(t => {
+          const st = PROD_STATUS_CONFIG[prod[t.id].status];
+          const isActive = prodTab === t.id;
+          return (
+            <button key={t.id} onClick={() => setProdTab(t.id)} style={{ padding: '0.4rem 0.9rem', borderRadius: '8px', cursor: 'pointer', border: isActive ? `1.5px solid ${st.border}` : '1px solid var(--border)', background: isActive ? st.bg : 'var(--bg-elevated)', color: isActive ? st.color : 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: isActive ? 600 : 400, transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {t.label}
+              {/* pill badge showing current status abbreviation */}
+              <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: st.bg, border: `1px solid ${st.border}`, color: st.color, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                {PROD_STATUS_CONFIG[prod[t.id].status].label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-      {/* ── PRODUÇÃO ── */}
-      {tab === 'producao' && (
-        <div>
-          {/* Sub-tabs Reels / Narração / Carrossel */}
-          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-            {prodTabs.map(t => {
-              const st = PROD_STATUS_CONFIG[prod[t.id].status];
-              return (
-                <button key={t.id} onClick={() => setProdTab(t.id)} style={{ padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', border: prodTab === t.id ? `1.5px solid ${st.border}` : '1px solid var(--border)', background: prodTab === t.id ? st.bg : 'var(--bg-elevated)', color: prodTab === t.id ? st.color : 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: prodTab === t.id ? 600 : 400, transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  {t.label}
-                  <span style={{ fontSize: '0.6rem', padding: '0.1rem 0.4rem', borderRadius: '20px', background: st.bg, border: `1px solid ${st.border}`, color: st.color, fontWeight: 700 }}>
-                    {PROD_STATUS_CONFIG[prod[t.id].status].label.split(' ')[0]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+      {/* Status pills */}
+      <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        {PROD_STATUS_ORDER.map(k => {
+          const v = PROD_STATUS_CONFIG[k];
+          const isActive = current.status === k;
+          return (
+            <button
+              key={k}
+              onClick={() => updateProd('status', k)}
+              style={{
+                padding: '3px 10px',
+                borderRadius: '100px',
+                cursor: 'pointer',
+                border: `1px solid ${isActive ? v.border : 'rgba(0,0,0,0.1)'}`,
+                background: isActive ? v.bg : 'transparent',
+                color: isActive ? v.color : 'var(--text-tertiary)',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                transition: 'all 0.15s',
+                opacity: isActive ? 1 : 0.6,
+              }}
+            >
+              {v.label}
+            </button>
+          );
+        })}
+      </div>
 
-          {/* Status selector */}
-          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            {(Object.entries(PROD_STATUS_CONFIG) as [ProdStatus, typeof sc][]).map(([k, v]) => (
-              <button key={k} onClick={() => updateProd('status', k)} style={{ padding: '0.35rem 0.85rem', borderRadius: '20px', cursor: 'pointer', border: `1.5px solid ${current.status === k ? v.border : 'var(--border)'}`, background: current.status === k ? v.bg : 'var(--bg-elevated)', color: current.status === k ? v.color : 'var(--text-tertiary)', fontSize: '0.75rem', fontWeight: current.status === k ? 600 : 400, transition: 'all 0.15s' }}>
-                {v.label}
-              </button>
-            ))}
-          </div>
+      {/* Text editor — border/bg tinted by current status */}
+      <textarea
+        rows={8}
+        placeholder={`Cole ou escreva o texto para ${prodTab === 'reels' ? 'Reels' : prodTab === 'narracao' ? 'Narração' : 'Carrossel'}...`}
+        value={current.text}
+        onChange={e => updateProd('text', e.target.value)}
+        style={{ width: '100%', fontSize: '0.875rem', resize: 'vertical', lineHeight: 1.7, padding: '0.75rem', borderRadius: '10px', border: `1.5px solid ${sc.border}`, background: sc.bg, color: 'var(--text-primary)', fontFamily: 'inherit' }}
+      />
 
-          {/* Text editor */}
-          <textarea
-            rows={8}
-            placeholder={`Cole ou escreva o texto para ${prodTab === 'reels' ? 'Reels' : prodTab === 'narracao' ? 'Narração' : 'Carrossel'}...`}
-            value={current.text}
-            onChange={e => updateProd('text', e.target.value)}
-            style={{ width: '100%', fontSize: '0.875rem', resize: 'vertical', lineHeight: 1.7, padding: '0.75rem', borderRadius: '10px', border: `1.5px solid ${sc.border}`, background: sc.bg, color: 'var(--text-primary)', fontFamily: 'inherit' }}
-          />
-
-          {/* Observação da cliente */}
-          <div style={{ marginTop: '0.75rem' }}>
-            <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Observação</span>
-            <textarea
-              rows={2}
-              placeholder="Observação ou feedback..."
-              value={current.obs}
-              onChange={e => updateProd('obs', e.target.value)}
-              style={{ width: '100%', fontSize: '0.82rem', resize: 'none', lineHeight: 1.6 }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* ── GRAVAÇÕES ── */}
-      {tab === 'gravacoes' && (
-        <div>
-          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-            <input type="text" placeholder="Nome da gravação" value={recLabel} onChange={e => setRecLabel(e.target.value)} style={{ flex: '1 1 150px', fontSize: '0.85rem' }} />
-            <input type="url" placeholder="Link (opcional)" value={recUrl} onChange={e => setRecUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && addRec()} style={{ flex: '2 1 200px', fontSize: '0.85rem' }} />
-            <button onClick={addRec} style={{ padding: '0.5rem 0.9rem', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>+</button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            {recs.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Nenhuma gravação ainda</p>}
-            {recs.map(r => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.85rem' }}>🎙</span>
-                {r.url ? (
-                  <a href={r.url} target="_blank" rel="noopener" style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>{r.label}</a>
-                ) : (
-                  <span style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>{r.label}</span>
-                )}
-                <button onClick={() => delRec(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '0.1rem', flexShrink: 0 }}>×</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Observação */}
+      <div style={{ marginTop: '0.75rem' }}>
+        <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Observação</span>
+        <textarea
+          rows={2}
+          placeholder="Observação ou feedback..."
+          value={current.obs}
+          onChange={e => updateProd('obs', e.target.value)}
+          style={{ width: '100%', fontSize: '0.82rem', resize: 'none', lineHeight: 1.6 }}
+        />
+      </div>
     </div>
   );
 }
