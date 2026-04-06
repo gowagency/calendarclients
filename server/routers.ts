@@ -168,6 +168,49 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deleteAttachment(input.id)),
   }),
+
+  tasks: router({
+    list: publicProcedure
+      .input(z.object({ client: clientSchema }))
+      .query(({ input }) => db.getProdTasks(input.client)),
+
+    create: publicProcedure
+      .input(z.object({
+        client: clientSchema,
+        id: z.string(),
+        type: z.string().default("a_definir"),
+        title: z.string(),
+        status: z.string().default("nao_iniciado"),
+        dueDate: z.string().optional().nullable(),
+        obs: z.string().optional().nullable(),
+        obsAliny: z.string().optional().nullable(),
+        canvaUrl: z.string().optional().nullable(),
+        pilar: z.string().optional().nullable(),
+        createdAt: z.number(),
+      }))
+      .mutation(({ input }) => db.createProdTask(input)),
+
+    update: publicProcedure
+      .input(z.object({
+        id: z.string(),
+        type: z.string().optional(),
+        title: z.string().optional(),
+        status: z.string().optional(),
+        dueDate: z.string().optional().nullable(),
+        obs: z.string().optional().nullable(),
+        obsAliny: z.string().optional().nullable(),
+        canvaUrl: z.string().optional().nullable(),
+        pilar: z.string().optional().nullable(),
+      }))
+      .mutation(({ input }) => {
+        const { id, ...fields } = input;
+        return db.updateProdTask(id, fields);
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(({ input }) => db.deleteProdTask(input.id)),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

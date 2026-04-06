@@ -4,9 +4,11 @@ import {
   posts,
   comments,
   attachments,
+  prodTasks,
   type InsertPost,
   type InsertComment,
   type InsertAttachment,
+  type InsertProdTask,
 } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -30,6 +32,24 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
         console.warn("[DB] pilar column migration unexpected error:", e.message?.slice(0, 80));
       }
     }
+
+    // Create prod_tasks table for production task tracking (synced across devices)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS prod_tasks (
+        id VARCHAR(50) PRIMARY KEY,
+        client VARCHAR(100) NOT NULL,
+        type VARCHAR(50) NOT NULL DEFAULT 'a_definir',
+        title VARCHAR(500) NOT NULL,
+        status VARCHAR(50) NOT NULL DEFAULT 'nao_iniciado',
+        dueDate VARCHAR(20),
+        obs TEXT,
+        obsAliny TEXT,
+        canvaUrl TEXT,
+        pilar VARCHAR(100),
+        createdAt BIGINT NOT NULL
+      )
+    `);
+    console.log("[DB] prod_tasks table ready");
   } catch (e) {
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));
   }
@@ -332,4 +352,35 @@ export async function deleteAttachment(id: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.delete(attachments).where(eq(attachments.id, id));
+}
+
+// ─── PROD TASKS ───
+
+export async function getProdTasks(client: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(prodTasks)
+    .where(eq(prodTasks.client, client))
+    .orderBy(asc(prodTasks.createdAt));
+}
+
+export async function createProdTask(task: InsertProdTask) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.insert(prodTasks).values(task);
+  return task;
+}
+
+export async function updateProdTask(id: string, fields: Partial<Omit<InsertProdTask, "id" | "client" | "createdAt">>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(prodTasks).set(fields).where(eq(prodTasks.id, id));
+}
+
+export async function deleteProdTask(id: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(prodTasks).where(eq(prodTasks.id, id));
 }

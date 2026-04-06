@@ -505,14 +505,15 @@ type ProdType   = 'reels' | 'narracao' | 'carrossel' | 'spotify' | 'a_definir';
 
 type ProdTask = {
   id: string;
-  type: ProdType;
+  client?: string;
+  type: string;
   title: string;
-  status: ProdStatus;
-  dueDate: string;   // 'YYYY-MM-DD'
-  obs: string;
-  obsAliny: string;  // campo exclusivo da Aliny
-  canvaUrl: string;
-  pilar: string;     // '' = sem pilar
+  status: string;
+  dueDate: string | null;
+  obs: string | null;
+  obsAliny: string | null;
+  canvaUrl: string | null;
+  pilar: string | null;
   createdAt: number;
 };
 
@@ -539,37 +540,54 @@ const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
   a_definir: { label: 'A Definir',  color: '#A8A09A' }, // cinza neutro
 };
 
-const EMPTY_TASK: Omit<ProdTask, 'id' | 'createdAt'> = {
-  type: 'a_definir', title: '', status: 'nao_iniciado', dueDate: '', obs: '', obsAliny: '', canvaUrl: '', pilar: '',
+const EMPTY_TASK = {
+  type: 'a_definir' as ProdType, title: '', status: 'nao_iniciado' as ProdStatus,
+  dueDate: '', obs: '', obsAliny: '', canvaUrl: '', pilar: '',
 };
 
 function QuickBlock({ client }: { client: string }) {
-  const lsKey = (t: string) => `gow_${client}_${t}`;
-  const load  = <T,>(t: string, def: T): T => { try { return JSON.parse(localStorage.getItem(lsKey(t)) || '') } catch { return def; } };
-  const save  = (t: string, v: any) => localStorage.setItem(lsKey(t), JSON.stringify(v));
+  const utils = trpc.useUtils();
 
-  const [tasks,       setTasks]      = useState<ProdTask[]>(() => load('prodTasks', []));
+  const tasksQuery = trpc.tasks.list.useQuery({ client: client as any });
+  const createTask  = trpc.tasks.create.useMutation({ onSuccess: () => utils.tasks.invalidate() });
+  const updateTaskM = trpc.tasks.update.useMutation({ onSuccess: () => utils.tasks.invalidate() });
+  const deleteTaskM = trpc.tasks.delete.useMutation({ onSuccess: () => utils.tasks.invalidate() });
+
   const [expandedId,  setExpandedId] = useState<string | null>(null);
   const [adding,      setAdding]     = useState(false);
   const [newTask,     setNewTask]    = useState({ ...EMPTY_TASK });
   const [filterPilar, setFilterPilar] = useState('');
   const [filterType,  setFilterType]  = useState('');
 
-  const persist = (updated: ProdTask[]) => { setTasks(updated); save('prodTasks', updated); };
+  // Migrate from localStorage on first load (one-time)
+  const tasks: ProdTask[] = (tasksQuery.data as ProdTask[]) || [];
+  useEffect(() => {
+    if (tasksQuery.isLoading) return;
+    const lsKey = `gow_${client}_prodTasks`;
+    const stored = localStorage.getItem(lsKey);
+    if (!stored) return;
+    try {
+      const lsTasks: ProdTask[] = JSON.parse(stored);
+      if (lsTasks.length > 0 && tasks.length === 0) {
+        lsTasks.forEach(t => createTask.mutate({ client: client as any, ...t, dueDate: t.dueDate || null, obs: t.obs || null, obsAliny: (t as any).obsAliny || null, canvaUrl: t.canvaUrl || null, pilar: t.pilar || null }));
+      }
+      localStorage.removeItem(lsKey);
+    } catch {}
+  }, [tasksQuery.isLoading]);
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
-    const t: ProdTask = { ...newTask, id: Date.now().toString(), createdAt: Date.now() };
-    persist([...tasks, t]);
+    const id = Date.now().toString();
+    createTask.mutate({ client: client as any, ...newTask, id, createdAt: Date.now(), dueDate: newTask.dueDate || null, obs: newTask.obs || null, obsAliny: null, canvaUrl: newTask.canvaUrl || null, pilar: newTask.pilar || null });
     setNewTask({ ...EMPTY_TASK });
     setAdding(false);
   };
 
   const updateTask = (id: string, field: keyof ProdTask, value: string) => {
-    persist(tasks.map(t => t.id === id ? { ...t, [field]: value } : t));
+    updateTaskM.mutate({ id, [field]: value || null });
   };
 
-  const deleteTask = (id: string) => persist(tasks.filter(t => t.id !== id));
+  const deleteTask = (id: string) => deleteTaskM.mutate({ id });
 
   // Sort: tasks without date at bottom, others by date asc
   const sorted = [...tasks]
@@ -585,13 +603,13 @@ function QuickBlock({ client }: { client: string }) {
       return true;
     });
 
-  const fmtDate = (d: string) => {
+  const fmtDate = (d: string | null) => {
     if (!d) return '';
     const [y, m, day] = d.split('-');
     return `${day}/${m}/${y}`;
   };
 
-  const isOverdue = (d: string, status: ProdStatus) => {
+  const isOverdue = (d: string | null, status: string) => {
     if (!d || status === 'postado' || status === 'gravado') return false;
     return d < new Date().toISOString().slice(0, 10);
   };
@@ -794,8 +812,8 @@ function QuickBlock({ client }: { client: string }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         {sorted.map(task => {
-          const sc   = PROD_STATUS_CONFIG[task.status];
-          const tc   = PROD_TYPE_CONFIG[task.type];
+          const sc   = PROD_STATUS_CONFIG[task.status as ProdStatus] ?? PROD_STATUS_CONFIG['nao_iniciado'];
+          const tc   = PROD_TYPE_CONFIG[task.type as ProdType] ?? PROD_TYPE_CONFIG['a_definir'];
           const open = expandedId === task.id;
           const over = isOverdue(task.dueDate, task.status);
 

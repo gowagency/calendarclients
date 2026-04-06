@@ -87,3 +87,20 @@ export const attachments = mysqlTable("attachments", {
 
 export type Attachment = typeof attachments.$inferSelect;
 export type InsertAttachment = typeof attachments.$inferInsert;
+
+export const prodTasks = mysqlTable("prod_tasks", {
+  id: varchar("id", { length: 50 }).primaryKey(),
+  client: varchar("client", { length: 100 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull().default("a_definir"),
+  title: varchar("title", { length: 500 }).notNull(),
+  status: varchar("status", { length: 50 }).notNull().default("nao_iniciado"),
+  dueDate: varchar("dueDate", { length: 20 }),
+  obs: text("obs"),
+  obsAliny: text("obsAliny"),
+  canvaUrl: text("canvaUrl"),
+  pilar: varchar("pilar", { length: 100 }),
+  createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+});
+
+export type ProdTask = typeof prodTasks.$inferSelect;
+export type InsertProdTask = typeof prodTasks.$inferInsert;
