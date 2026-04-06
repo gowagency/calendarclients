@@ -598,11 +598,17 @@ function QuickBlock({ client }: { client: string }) {
     <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tasks.length > 0 ? '0.6rem' : '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <span className="label">Produção</span>
           {tasks.length > 0 && (
-            <span style={{ fontSize: '0.65rem', background: 'var(--bg-secondary)', borderRadius: '10px', padding: '0.1rem 0.45rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+            <span style={{
+              fontSize: '0.65rem', borderRadius: '10px', padding: '0.1rem 0.45rem', fontWeight: 700,
+              background: (filterPilar || filterType) ? 'rgba(160,120,72,0.15)' : 'var(--bg-secondary)',
+              color: (filterPilar || filterType) ? '#A07848' : 'var(--text-secondary)',
+              border: (filterPilar || filterType) ? '1px solid rgba(160,120,72,0.35)' : '1px solid transparent',
+              transition: 'all 0.15s',
+            }}>
               {sorted.length}{sorted.length !== tasks.length ? `/${tasks.length}` : ''}
             </span>
           )}
@@ -615,41 +621,72 @@ function QuickBlock({ client }: { client: string }) {
         </button>
       </div>
 
-      {/* ── FILTROS ── */}
-      {tasks.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-          {/* Filtro por pilar */}
-          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginRight: '0.1rem' }}>Pilar</span>
-            <button
-              onClick={() => setFilterPilar('')}
-              style={{ fontSize: '0.68rem', padding: '0.15rem 0.6rem', borderRadius: '100px', border: filterPilar === '' ? '1.5px solid var(--text-secondary)' : '1px solid var(--border)', background: filterPilar === '' ? 'var(--bg-secondary)' : 'transparent', color: filterPilar === '' ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', fontWeight: filterPilar === '' ? 700 : 400, transition: 'all 0.12s' }}
-            >Todos</button>
-            {PILARES.map(p => (
+      {/* ── FILTROS (dropdowns nativos — PC e mobile) ── */}
+      {tasks.length > 0 && (() => {
+        const pilarAtivo  = PILARES.find(p => p.id === filterPilar);
+        const tipoAtivo   = filterType ? PROD_TYPE_CONFIG[filterType as ProdType] : null;
+        const algumFiltro = filterPilar || filterType;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            {/* Ícone + label */}
+            <span style={{ fontSize: '0.68rem', color: algumFiltro ? '#A07848' : 'var(--text-tertiary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+                <path d="M1 2.5h10M3 6h6M5 9.5h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              Filtrar
+            </span>
+
+            {/* Pilar select */}
+            <select
+              value={filterPilar}
+              onChange={e => setFilterPilar(e.target.value)}
+              style={{
+                fontSize: '0.75rem', fontWeight: pilarAtivo ? 700 : 500,
+                color: pilarAtivo ? pilarAtivo.color : 'var(--text-secondary)',
+                background: pilarAtivo ? `${pilarAtivo.color}12` : 'var(--bg-elevated)',
+                border: pilarAtivo ? `1.5px solid ${pilarAtivo.color}50` : '1px solid var(--border)',
+                borderRadius: '8px', padding: '0.3rem 0.6rem',
+                cursor: 'pointer', flex: '1 1 120px', minWidth: '110px', maxWidth: '200px',
+                transition: 'all 0.15s',
+              }}
+            >
+              <option value="">Pilar: todos</option>
+              {PILARES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+
+            {/* Formato select */}
+            <select
+              value={filterType}
+              onChange={e => setFilterType(e.target.value)}
+              style={{
+                fontSize: '0.75rem', fontWeight: tipoAtivo ? 700 : 500,
+                color: tipoAtivo ? tipoAtivo.color : 'var(--text-secondary)',
+                background: tipoAtivo ? `${tipoAtivo.color}12` : 'var(--bg-elevated)',
+                border: tipoAtivo ? `1.5px solid ${tipoAtivo.color}50` : '1px solid var(--border)',
+                borderRadius: '8px', padding: '0.3rem 0.6rem',
+                cursor: 'pointer', flex: '1 1 120px', minWidth: '110px', maxWidth: '180px',
+                transition: 'all 0.15s',
+              }}
+            >
+              <option value="">Formato: todos</option>
+              {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+
+            {/* Limpar filtros */}
+            {algumFiltro && (
               <button
-                key={p.id}
-                onClick={() => setFilterPilar(filterPilar === p.id ? '' : p.id)}
-                style={{ fontSize: '0.68rem', padding: '0.15rem 0.6rem', borderRadius: '100px', border: filterPilar === p.id ? `1.5px solid ${p.color}` : `1px solid ${p.color}40`, background: filterPilar === p.id ? `${p.color}20` : 'transparent', color: filterPilar === p.id ? p.color : `${p.color}AA`, cursor: 'pointer', fontWeight: filterPilar === p.id ? 700 : 400, transition: 'all 0.12s' }}
-              >{p.label}</button>
-            ))}
+                onClick={() => { setFilterPilar(''); setFilterType(''); }}
+                style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.3rem 0.55rem', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+              >
+                <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                Limpar
+              </button>
+            )}
           </div>
-          {/* Filtro por formato */}
-          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginRight: '0.1rem' }}>Formato</span>
-            <button
-              onClick={() => setFilterType('')}
-              style={{ fontSize: '0.68rem', padding: '0.15rem 0.6rem', borderRadius: '100px', border: filterType === '' ? '1.5px solid var(--text-secondary)' : '1px solid var(--border)', background: filterType === '' ? 'var(--bg-secondary)' : 'transparent', color: filterType === '' ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', fontWeight: filterType === '' ? 700 : 400, transition: 'all 0.12s' }}
-            >Todos</button>
-            {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
-              <button
-                key={k}
-                onClick={() => setFilterType(filterType === k ? '' : k)}
-                style={{ fontSize: '0.68rem', padding: '0.15rem 0.6rem', borderRadius: '100px', border: filterType === k ? `1.5px solid ${v.color}` : `1px solid ${v.color}40`, background: filterType === k ? `${v.color}20` : 'transparent', color: filterType === k ? v.color : `${v.color}AA`, cursor: 'pointer', fontWeight: filterType === k ? 700 : 400, transition: 'all 0.12s' }}
-              >{v.label}</button>
-            ))}
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── ADD FORM ── */}
       {adding && (
