@@ -211,6 +211,36 @@ export const appRouter = router({
       .input(z.object({ id: z.string() }))
       .mutation(({ input }) => db.deleteProdTask(input.id)),
   }),
+
+  dailyTasks: router({
+    getTasks: publicProcedure
+      .input(z.object({ client: clientSchema, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }))
+      .query(({ input }) => db.getTasksByDate(input.client, input.date)),
+
+    createTask: publicProcedure
+      .input(z.object({
+        id: z.string(),
+        client: clientSchema,
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        title: z.string().min(1).max(500),
+      }))
+      .mutation(({ input }) => db.createTask({ ...input, completed: false })),
+
+    updateTask: publicProcedure
+      .input(z.object({
+        id: z.string(),
+        completed: z.boolean().optional(),
+        title: z.string().min(1).max(500).optional(),
+      }))
+      .mutation(({ input }) => {
+        const { id, ...fields } = input;
+        return db.updateTask(id, fields);
+      }),
+
+    deleteTask: publicProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(({ input }) => db.deleteTask(input.id)),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

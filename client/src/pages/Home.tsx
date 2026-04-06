@@ -498,6 +498,185 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
   );
 }
 
+// ─── DAILY TASKS ─────────────────────────────────────────────────────────────
+
+function DailyTasks({ client }: { client: string }) {
+  const utils = trpc.useUtils();
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const tasksQuery = trpc.dailyTasks.getTasks.useQuery({ client: client as any, date: today });
+  const createTaskM = trpc.dailyTasks.createTask.useMutation({ onSuccess: () => utils.dailyTasks.invalidate() });
+  const updateTaskM = trpc.dailyTasks.updateTask.useMutation({ onSuccess: () => utils.dailyTasks.invalidate() });
+  const deleteTaskM = trpc.dailyTasks.deleteTask.useMutation({ onSuccess: () => utils.dailyTasks.invalidate() });
+
+  const [newTitle, setNewTitle] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  type DailyTask = { id: string; client: string; date: string; title: string; completed: boolean; createdAt: Date; updatedAt: Date };
+  const dailyTasks: DailyTask[] = (tasksQuery.data as DailyTask[]) || [];
+
+  // Migrate from localStorage on first load
+  useEffect(() => {
+    if (tasksQuery.isLoading) return;
+    const lsKey = `gow_${client}_dailyTasks_${today}`;
+    const stored = localStorage.getItem(lsKey);
+    if (!stored) return;
+    try {
+      const lsTasks: { id: string; title: string; completed: boolean }[] = JSON.parse(stored);
+      if (lsTasks.length === 0) { localStorage.removeItem(lsKey); return; }
+      if (dailyTasks.length === 0) {
+        let confirmed = 0;
+        let errored = false;
+        const onSuccess = () => {
+          confirmed++;
+          if (confirmed === lsTasks.length && !errored) {
+            localStorage.removeItem(lsKey);
+            console.log(`[migration] ${confirmed} tarefas diárias migradas pro banco`);
+          }
+        };
+        const onError = () => { errored = true; };
+        lsTasks.forEach(t => {
+          createTaskM.mutate(
+            { id: t.id || Date.now().toString(), client: client as any, date: today, title: t.title },
+            { onSuccess, onError }
+          );
+        });
+      } else {
+        localStorage.removeItem(lsKey);
+      }
+    } catch { localStorage.removeItem(lsKey); }
+  }, [tasksQuery.isLoading]);
+
+  const addTask = () => {
+    if (!newTitle.trim()) return;
+    createTaskM.mutate({ id: crypto.randomUUID(), client: client as any, date: today, title: newTitle.trim() });
+    setNewTitle('');
+    setAdding(false);
+  };
+
+  const toggleTask = (id: string, completed: boolean) => {
+    updateTaskM.mutate({ id, completed: !completed });
+  };
+
+  const removeTask = (id: string) => {
+    deleteTaskM.mutate({ id });
+  };
+
+  const done  = dailyTasks.filter(t => t.completed).length;
+  const total = dailyTasks.length;
+
+  return (
+    <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <span className="label">Tarefas do dia</span>
+          {total > 0 && (
+            <span style={{
+              fontSize: '0.65rem', borderRadius: '10px', padding: '0.1rem 0.45rem', fontWeight: 700,
+              background: done === total ? 'rgba(107,138,110,0.15)' : 'var(--bg-secondary)',
+              color: done === total ? '#4E7052' : 'var(--text-secondary)',
+              border: done === total ? '1px solid rgba(107,138,110,0.35)' : '1px solid transparent',
+              transition: 'all 0.15s',
+            }}>
+              {done}/{total}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => { setAdding(a => !a); setNewTitle(''); }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', background: adding ? 'var(--bg-secondary)' : 'var(--text-primary)', color: adding ? 'var(--text-secondary)' : 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, transition: 'all 0.15s' }}
+        >
+          {adding ? '✕ Cancelar' : '+ Nova tarefa'}
+        </button>
+      </div>
+
+      {/* Add form */}
+      {adding && (
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+          <input
+            type="text"
+            placeholder="Título da tarefa..."
+            value={newTitle}
+            onChange={e => setNewTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addTask()}
+            autoFocus
+            style={{ flex: 1, fontSize: '0.875rem' }}
+          />
+          <button
+            onClick={addTask}
+            disabled={!newTitle.trim()}
+            style={{ padding: '0.45rem 1rem', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', cursor: newTitle.trim() ? 'pointer' : 'not-allowed', fontSize: '0.82rem', fontWeight: 600, opacity: newTitle.trim() ? 1 : 0.5, transition: 'opacity 0.15s' }}
+          >
+            Adicionar
+          </button>
+        </div>
+      )}
+
+      {/* Task list */}
+      {dailyTasks.length === 0 && !adding && (
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1.25rem 0' }}>
+          Nenhuma tarefa para hoje. Clique em "+ Nova tarefa" para começar.
+        </p>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+        {dailyTasks.map(task => (
+          <div
+            key={task.id}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              padding: '0.65rem 0.85rem',
+              background: task.completed ? 'rgba(107,138,110,0.07)' : 'var(--bg-elevated)',
+              border: `1px solid ${task.completed ? 'rgba(107,138,110,0.25)' : 'var(--border)'}`,
+              borderRadius: '10px',
+              transition: 'all 0.15s',
+            }}
+          >
+            {/* Checkbox */}
+            <button
+              onClick={() => toggleTask(task.id, task.completed)}
+              style={{
+                width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                border: `2px solid ${task.completed ? '#6B8A6E' : 'var(--border-strong)'}`,
+                background: task.completed ? '#6B8A6E' : 'transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+            >
+              {task.completed && (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
+
+            {/* Title */}
+            <span style={{
+              flex: 1, fontSize: '0.875rem', color: task.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
+              textDecoration: task.completed ? 'line-through' : 'none',
+              transition: 'all 0.15s',
+            }}>
+              {task.title}
+            </span>
+
+            {/* Delete */}
+            <button
+              onClick={() => removeTask(task.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '0.15rem', display: 'flex', opacity: 0.6, transition: 'opacity 0.15s' }}
+              title="Remover"
+            >
+              <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+                <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── QUICK BLOCK ──────────────────────────────────────────────────────────────
 
 type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'em_aprovacao' | 'aprovado' | 'em_gravacao' | 'gravado' | 'postado';
@@ -1408,6 +1587,9 @@ export default function Home({ client }: { client: ClientSlug }) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ═══ TAREFAS DO DIA ═══ */}
+        <DailyTasks client={client} />
 
         {/* ═══ BLOCO DE SUPORTE ═══ */}
         <QuickBlock client={client} />
