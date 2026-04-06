@@ -5,10 +5,12 @@ import {
   comments,
   attachments,
   prodTasks,
+  tasks,
   type InsertPost,
   type InsertComment,
   type InsertAttachment,
   type InsertProdTask,
+  type InsertTask,
 } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -50,6 +52,20 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
       )
     `);
     console.log("[DB] prod_tasks table ready");
+
+    // Create tasks table for daily checklist (synced across devices)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id VARCHAR(36) PRIMARY KEY,
+        client VARCHAR(100) NOT NULL,
+        date VARCHAR(10) NOT NULL,
+        title VARCHAR(500) NOT NULL,
+        completed BOOLEAN NOT NULL DEFAULT FALSE,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    console.log("[DB] tasks table ready");
   } catch (e) {
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));
   }
@@ -383,4 +399,35 @@ export async function deleteProdTask(id: string) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.delete(prodTasks).where(eq(prodTasks.id, id));
+}
+
+// ─── DAILY TASKS ───
+
+export async function getTasksByDate(client: string, date: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.client, client), eq(tasks.date, date)))
+    .orderBy(asc(tasks.createdAt));
+}
+
+export async function createTask(task: InsertTask) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.insert(tasks).values(task);
+  return task;
+}
+
+export async function updateTask(id: string, fields: { completed?: boolean; title?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(tasks).set(fields).where(eq(tasks.id, id));
+}
+
+export async function deleteTask(id: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(tasks).where(eq(tasks.id, id));
 }

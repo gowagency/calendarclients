@@ -8,6 +8,8 @@ import {
   varchar,
   json,
   bigint,
+  boolean,
+  date,
 } from "drizzle-orm/mysql-core";
 
 export const CLIENTS = ["alinyrayze", "juniorlopes"] as const;
@@ -104,3 +106,16 @@ export const prodTasks = mysqlTable("prod_tasks", {
 
 export type ProdTask = typeof prodTasks.$inferSelect;
 export type InsertProdTask = typeof prodTasks.$inferInsert;
+
+export const tasks = mysqlTable("tasks", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  client: varchar("client", { length: 100 }).notNull(),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD
+  title: varchar("title", { length: 500 }).notNull(),
+  completed: boolean("completed").notNull().default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = typeof tasks.$inferInsert;
