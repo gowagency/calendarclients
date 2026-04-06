@@ -501,7 +501,7 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
 // ─── QUICK BLOCK ──────────────────────────────────────────────────────────────
 
 type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'em_aprovacao' | 'aprovado' | 'em_gravacao' | 'gravado' | 'postado';
-type ProdType   = 'reels' | 'narracao' | 'carrossel' | 'a_definir';
+type ProdType   = 'reels' | 'narracao' | 'carrossel' | 'spotify' | 'a_definir';
 
 type ProdTask = {
   id: string;
@@ -535,6 +535,7 @@ const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
   reels:     { label: 'Reels',      color: '#7B3A12' }, // chocolate — destaque
   narracao:  { label: 'Narração',   color: '#8B8177' }, // taupe neutro
   carrossel: { label: 'Carrossel',  color: '#A07848' }, // camel bege
+  spotify:   { label: 'Spotify',    color: '#4E7052' }, // sage green escuro
   a_definir: { label: 'A Definir',  color: '#A8A09A' }, // cinza neutro
 };
 
