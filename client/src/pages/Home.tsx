@@ -1135,7 +1135,7 @@ export default function Home({ client }: { client: ClientSlug }) {
         </div>
       </header>
 
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '0.75rem 1rem', overflowX: 'hidden' }}>
+      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '0.75rem 1rem' }}>
 
         {pageView === 'calendario' && (
           <>
