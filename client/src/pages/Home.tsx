@@ -559,7 +559,7 @@ function QuickBlock({ client }: { client: string }) {
   const [filterPilar, setFilterPilar] = useState('');
   const [filterType,  setFilterType]  = useState('');
 
-  // Migrate from localStorage on first load (one-time)
+  // Migrate from localStorage on first load — localStorage only cleared after ALL tasks confirmed saved
   const tasks: ProdTask[] = (tasksQuery.data as ProdTask[]) || [];
   useEffect(() => {
     if (tasksQuery.isLoading) return;
@@ -568,11 +568,30 @@ function QuickBlock({ client }: { client: string }) {
     if (!stored) return;
     try {
       const lsTasks: ProdTask[] = JSON.parse(stored);
-      if (lsTasks.length > 0 && tasks.length === 0) {
-        lsTasks.forEach(t => createTask.mutate({ client: client as any, ...t, dueDate: t.dueDate || null, obs: t.obs || null, obsAliny: (t as any).obsAliny || null, canvaUrl: t.canvaUrl || null, pilar: t.pilar || null }));
+      if (lsTasks.length === 0) { localStorage.removeItem(lsKey); return; }
+      if (tasks.length === 0) {
+        // Migrate: count confirmations, only delete localStorage when all succeed
+        let confirmed = 0;
+        let errored = false;
+        const onSuccess = () => {
+          confirmed++;
+          if (confirmed === lsTasks.length && !errored) {
+            localStorage.removeItem(lsKey);
+            console.log(`[migration] ${confirmed} tarefas migradas pro banco`);
+          }
+        };
+        const onError = () => { errored = true; }; // keep localStorage intact if any fail
+        lsTasks.forEach(t => {
+          createTask.mutate(
+            { client: client as any, ...t, dueDate: t.dueDate || null, obs: t.obs || null, obsAliny: (t as any).obsAliny || null, canvaUrl: t.canvaUrl || null, pilar: t.pilar || null },
+            { onSuccess, onError }
+          );
+        });
+      } else {
+        // DB already has tasks — localStorage is stale, safe to discard
+        localStorage.removeItem(lsKey);
       }
-      localStorage.removeItem(lsKey);
-    } catch {}
+    } catch { localStorage.removeItem(lsKey); }
   }, [tasksQuery.isLoading]);
 
   const addTask = () => {
