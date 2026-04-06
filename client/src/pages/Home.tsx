@@ -510,6 +510,7 @@ type ProdTask = {
   status: ProdStatus;
   dueDate: string;   // 'YYYY-MM-DD'
   obs: string;
+  obsAliny: string;  // campo exclusivo da Aliny
   canvaUrl: string;
   pilar: string;     // '' = sem pilar
   createdAt: number;
@@ -538,7 +539,7 @@ const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
 };
 
 const EMPTY_TASK: Omit<ProdTask, 'id' | 'createdAt'> = {
-  type: 'a_definir', title: '', status: 'nao_iniciado', dueDate: '', obs: '', canvaUrl: '', pilar: '',
+  type: 'a_definir', title: '', status: 'nao_iniciado', dueDate: '', obs: '', obsAliny: '', canvaUrl: '', pilar: '',
 };
 
 function QuickBlock({ client }: { client: string }) {
@@ -862,6 +863,11 @@ function QuickBlock({ client }: { client: string }) {
                         </span>
                       ) : null;
                     })()}
+                    {task.obsAliny && task.obsAliny.replace(/<[^>]*>/g, '').trim() && (
+                      <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', fontWeight: 600, color: '#4E7052', background: 'rgba(107,138,110,0.12)', border: '1px solid rgba(107,138,110,0.30)', whiteSpace: 'nowrap' }}>
+                        ✎ Aliny
+                      </span>
+                    )}
                     {task.canvaUrl && (
                       <a
                         href={task.canvaUrl}
@@ -913,6 +919,36 @@ function QuickBlock({ client }: { client: string }) {
                     placeholder="Observação..."
                     minHeight={72}
                   />
+
+                  {/* ── Observações Aliny ── */}
+                  <div style={{
+                    borderRadius: '10px',
+                    border: '1.5px solid rgba(107,138,110,0.35)',
+                    background: 'rgba(107,138,110,0.06)',
+                    overflow: 'hidden',
+                  }}>
+                    {/* Header do bloco */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '0.4rem',
+                      padding: '0.45rem 0.75rem',
+                      borderBottom: task.obsAliny ? '1px solid rgba(107,138,110,0.2)' : 'none',
+                      background: 'rgba(107,138,110,0.09)',
+                    }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4E7052', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                        ✎ Aliny
+                      </span>
+                      <span style={{ fontSize: '0.65rem', color: '#6B8A6E', fontStyle: 'italic' }}>— sugestões e observações dela</span>
+                    </div>
+                    {/* Editor */}
+                    <div style={{ padding: '0.1rem' }}>
+                      <RichTextEditor
+                        value={task.obsAliny || ''}
+                        onChange={html => updateTask(task.id, 'obsAliny', html)}
+                        placeholder="Espaço exclusivo para anotações da Aliny..."
+                        minHeight={60}
+                      />
+                    </div>
+                  </div>
 
                   {/* Canva link */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
