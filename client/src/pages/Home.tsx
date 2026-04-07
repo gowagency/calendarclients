@@ -362,7 +362,7 @@ function getMonthWeekdayGrid(year: number, month: number): (Date | null)[][] {
   return weeks;
 }
 
-function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSearchChange }: { posts: Post[]; onSelectPost: (p: Post) => void; onNewPost: () => void; updatePost: any; search: string; onSearchChange: (v: string) => void; }) {
+function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, search, onSearchChange }: { posts: Post[]; tasks: ProdTask[]; onSelectPost: (p: Post) => void; onNewPost: () => void; updatePost: any; search: string; onSearchChange: (v: string) => void; }) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -383,6 +383,17 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
     });
     return map;
   }, [posts]);
+
+  const tasksByDate = useMemo(() => {
+    const map: Record<string, ProdTask[]> = {};
+    tasks.forEach(t => {
+      if (t.dueDate) {
+        if (!map[t.dueDate]) map[t.dueDate] = [];
+        map[t.dueDate].push(t);
+      }
+    });
+    return map;
+  }, [tasks]);
 
   const unscheduled = useMemo(() => posts.filter(p => !p.scheduledDate), [posts]);
   const navMonth = (dir: number) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + dir); setCurrentMonth(d); };
@@ -463,7 +474,31 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
                         </button>
                       );
                     })}
-                    {dayPosts.length === 0 && !feriado && (
+                    {/* Tasks de produção com vencimento neste dia */}
+                    {(tasksByDate[key] || []).map(t => {
+                      const tsc = (() => {
+                        const cfg: Record<string,{color:string;bg:string;border:string}> = {
+                          nao_iniciado: {color:'#8B8177',bg:'rgba(139,129,119,0.10)',border:'rgba(139,129,119,0.25)'},
+                          em_andamento: {color:'#A07848',bg:'rgba(160,120,72,0.12)',border:'rgba(160,120,72,0.28)'},
+                          em_aprovacao: {color:'#A4735E',bg:'rgba(164,115,94,0.12)',border:'rgba(164,115,94,0.28)'},
+                          aprovado:     {color:'#6B8A6E',bg:'rgba(107,138,110,0.12)',border:'rgba(107,138,110,0.28)'},
+                          em_gravacao:  {color:'#7B3A12',bg:'rgba(123,58,18,0.10)',border:'rgba(123,58,18,0.25)'},
+                          gravado:      {color:'#4E7052',bg:'rgba(107,138,110,0.18)',border:'rgba(107,138,110,0.36)'},
+                          postado:      {color:'#5C2B0A',bg:'rgba(123,58,18,0.16)',border:'rgba(123,58,18,0.32)'},
+                        };
+                        return cfg[t.status] ?? cfg['nao_iniciado'];
+                      })();
+                      return (
+                        <div key={t.id} style={{ width:'100%', background: tsc.bg, border: `1px dashed ${tsc.border}`, borderRadius:'6px', padding:'0.28rem 0.4rem', marginBottom:'0.2rem', display:'flex', alignItems:'flex-start', gap:'0.25rem' }}>
+                          <span style={{ fontSize:'0.58rem', flexShrink:0, marginTop:'0.05rem' }}>📋</span>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:'0.62rem', color:'var(--text-primary)', fontWeight:600, lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.title}</div>
+                            <span style={{ fontSize:'0.52rem', color: tsc.color, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em' }}>{t.status.replace(/_/g,' ')}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {dayPosts.length === 0 && (tasksByDate[key] || []).length === 0 && !feriado && (
                       <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>—</p>
                     )}
                   </div>
@@ -513,6 +548,7 @@ type ProdTask = {
   obs: string | null;
   obsAliny: string | null;
   canvaUrl: string | null;
+  creativoUrl: string | null;
   pilar: string | null;
   createdAt: number;
 };
@@ -542,7 +578,7 @@ const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
 
 const EMPTY_TASK = {
   type: 'a_definir' as ProdType, title: '', status: 'nao_iniciado' as ProdStatus,
-  dueDate: '', obs: '', obsAliny: '', canvaUrl: '', pilar: '',
+  dueDate: '', obs: '', obsAliny: '', canvaUrl: '', creativoUrl: '', pilar: '',
 };
 
 function QuickBlock({ client }: { client: string }) {
@@ -583,7 +619,7 @@ function QuickBlock({ client }: { client: string }) {
         const onError = () => { errored = true; }; // keep localStorage intact if any fail
         lsTasks.forEach(t => {
           createTask.mutate(
-            { client: client as any, ...t, dueDate: t.dueDate || null, obs: t.obs || null, obsAliny: (t as any).obsAliny || null, canvaUrl: t.canvaUrl || null, pilar: t.pilar || null },
+            { client: client as any, ...t, dueDate: t.dueDate || null, obs: t.obs || null, obsAliny: (t as any).obsAliny || null, canvaUrl: t.canvaUrl || null, creativoUrl: (t as any).creativoUrl || null, pilar: t.pilar || null },
             { onSuccess, onError }
           );
         });
@@ -597,7 +633,7 @@ function QuickBlock({ client }: { client: string }) {
   const addTask = () => {
     if (!newTask.title.trim()) return;
     const id = Date.now().toString();
-    createTask.mutate({ client: client as any, ...newTask, id, createdAt: Date.now(), dueDate: newTask.dueDate || null, obs: newTask.obs || null, obsAliny: null, canvaUrl: newTask.canvaUrl || null, pilar: newTask.pilar || null });
+    createTask.mutate({ client: client as any, ...newTask, id, createdAt: Date.now(), dueDate: newTask.dueDate || null, obs: newTask.obs || null, obsAliny: null, canvaUrl: newTask.canvaUrl || null, creativoUrl: newTask.creativoUrl || null, pilar: newTask.pilar || null });
     setNewTask({ ...EMPTY_TASK });
     setAdding(false);
   };
@@ -815,6 +851,22 @@ function QuickBlock({ client }: { client: string }) {
               </a>
             )}
           </div>
+          {/* Criativo / Drive link */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Criativo</span>
+            <input
+              type="url"
+              placeholder="Link do Drive, foto ou arquivo..."
+              value={newTask.creativoUrl}
+              onChange={e => setNewTask(f => ({ ...f, creativoUrl: e.target.value }))}
+              style={{ flex: 1, fontSize: '0.8rem' }}
+            />
+            {newTask.creativoUrl && (
+              <a href={newTask.creativoUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#3B82C4', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', padding: '0.2rem 0.6rem', border: '1px solid rgba(59,130,196,0.3)', borderRadius: '6px', background: 'rgba(59,130,196,0.08)' }}>
+                Abrir ↗
+              </a>
+            )}
+          </div>
           {/* Save */}
           <button onClick={addTask} style={{ alignSelf: 'flex-end', padding: '0.45rem 1.25rem', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
             Adicionar
@@ -917,6 +969,17 @@ function QuickBlock({ client }: { client: string }) {
                         Canva ↗
                       </a>
                     )}
+                    {task.creativoUrl && (
+                      <a
+                        href={task.creativoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(59,130,196,0.10)', border: '1px solid rgba(59,130,196,0.28)', color: '#3B82C4', textDecoration: 'none' }}
+                      >
+                        Criativo ↗
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -1005,6 +1068,23 @@ function QuickBlock({ client }: { client: string }) {
                     )}
                   </div>
 
+                  {/* Criativo / Drive link */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Criativo</span>
+                    <input
+                      type="url"
+                      placeholder="Link do Drive, foto ou arquivo..."
+                      value={task.creativoUrl || ''}
+                      onChange={e => updateTask(task.id, 'creativoUrl', e.target.value)}
+                      style={{ flex: 1, fontSize: '0.8rem' }}
+                    />
+                    {task.creativoUrl && (
+                      <a href={task.creativoUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#3B82C4', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', padding: '0.2rem 0.6rem', border: '1px solid rgba(59,130,196,0.3)', borderRadius: '6px', background: 'rgba(59,130,196,0.08)' }}>
+                        Abrir ↗
+                      </a>
+                    )}
+                  </div>
+
                   {/* Delete */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button onClick={() => deleteTask(task.id)} style={{ padding: '0.3rem 0.75rem', background: 'none', border: '1px solid rgba(216,90,48,0.3)', borderRadius: '7px', cursor: 'pointer', fontSize: '0.75rem', color: '#D85A30', fontWeight: 500 }}>
@@ -1035,6 +1115,7 @@ export default function Home({ client }: { client: ClientSlug }) {
 
   const utils = trpc.useUtils();
   const postsQuery = trpc.posts.list.useQuery({ client });
+  const tasksQuery = trpc.tasks.list.useQuery({ client: client as any });
   const createPost = trpc.posts.create.useMutation({
     onSuccess: () => { utils.posts.invalidate(); toast.success('Post criado'); setShowNewPost(false); },
     onError: (err) => toast.error(`Erro ao criar post: ${err.message}`),
@@ -1044,6 +1125,7 @@ export default function Home({ client }: { client: ClientSlug }) {
   });
 
   const allPosts: Post[] = (postsQuery.data as Post[]) || [];
+  const allTasks: ProdTask[] = (tasksQuery.data as ProdTask[]) || [];
 
   // Keep selectedPost in sync with fresh data (e.g. after cover upload)
   useEffect(() => {
@@ -1327,6 +1409,7 @@ export default function Home({ client }: { client: ClientSlug }) {
             >
               <CalendarView
                 posts={filteredPosts}
+                tasks={allTasks}
                 onSelectPost={setSelectedPost}
                 onNewPost={() => setShowNewPost(true)}
                 updatePost={updatePost}

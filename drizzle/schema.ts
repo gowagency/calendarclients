@@ -98,6 +98,7 @@ export const prodTasks = mysqlTable("prod_tasks", {
   obs: text("obs"),
   obsAliny: text("obsAliny"),
   canvaUrl: text("canvaUrl"),
+  creativoUrl: text("creativoUrl"),
   pilar: varchar("pilar", { length: 100 }),
   createdAt: bigint("createdAt", { mode: "number" }).notNull(),
 });

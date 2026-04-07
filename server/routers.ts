@@ -185,6 +185,7 @@ export const appRouter = router({
         obs: z.string().optional().nullable(),
         obsAliny: z.string().optional().nullable(),
         canvaUrl: z.string().optional().nullable(),
+        creativoUrl: z.string().optional().nullable(),
         pilar: z.string().optional().nullable(),
         createdAt: z.number(),
       }))
@@ -200,6 +201,7 @@ export const appRouter = router({
         obs: z.string().optional().nullable(),
         obsAliny: z.string().optional().nullable(),
         canvaUrl: z.string().optional().nullable(),
+        creativoUrl: z.string().optional().nullable(),
         pilar: z.string().optional().nullable(),
       }))
       .mutation(({ input }) => {

@@ -45,10 +45,19 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
         obs TEXT,
         obsAliny TEXT,
         canvaUrl TEXT,
+        creativoUrl TEXT,
         pilar VARCHAR(100),
         createdAt BIGINT NOT NULL
       )
     `);
+    // Add creativoUrl column to existing tables (safe: ignore if already exists)
+    try {
+      await db.execute(sql`ALTER TABLE prod_tasks ADD COLUMN creativoUrl TEXT`);
+    } catch (e: any) {
+      if (!e.message?.includes("Duplicate column")) {
+        console.warn("[DB] creativoUrl column:", e.message?.slice(0, 60));
+      }
+    }
     console.log("[DB] prod_tasks table ready");
   } catch (e) {
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));
