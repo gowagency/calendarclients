@@ -448,7 +448,7 @@ function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, searc
                 const feriado = FERIADOS_BR[key];
                 const isToday = key === todayKey;
                 return (
-                  <div key={key} style={{ background: 'var(--bg-elevated)', border: isToday ? '2px solid #5c7aff' : '1px solid var(--border)', borderRadius: '10px', padding: '0.5rem 0.6rem', minHeight: '90px', position: 'relative' }}>
+                  <div key={key} style={{ background: 'var(--bg-elevated)', border: isToday ? '2px solid #5c7aff' : '1px solid var(--border)', borderRadius: '10px', padding: '0.5rem 0.6rem', minHeight: '90px', position: 'relative', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.3rem' }}>
                       <span style={{ fontSize: '0.85rem', fontWeight: isToday ? 700 : 400, color: isToday ? '#5c7aff' : 'var(--text-secondary)', fontFamily: 'DM Sans, system-ui' }}>{day.getDate()}</span>
                     </div>
@@ -489,10 +489,10 @@ function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, searc
                         return cfg[t.status] ?? cfg['nao_iniciado'];
                       })();
                       return (
-                        <div key={t.id} style={{ width:'100%', background: tsc.bg, border: `1px dashed ${tsc.border}`, borderRadius:'6px', padding:'0.28rem 0.4rem', marginBottom:'0.2rem', display:'flex', alignItems:'flex-start', gap:'0.25rem' }}>
+                        <div key={t.id} style={{ width:'100%', minWidth:0, background: tsc.bg, border: `1px dashed ${tsc.border}`, borderRadius:'6px', padding:'0.28rem 0.4rem', marginBottom:'0.2rem', display:'flex', alignItems:'flex-start', gap:'0.25rem', overflow:'hidden' }}>
                           <span style={{ fontSize:'0.58rem', flexShrink:0, marginTop:'0.05rem' }}>📋</span>
                           <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:'0.62rem', color:'var(--text-primary)', fontWeight:600, lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.title}</div>
+                            <div style={{ fontSize:'0.62rem', color:'var(--text-primary)', fontWeight:600, lineHeight:1.2, wordBreak:'break-word', overflowWrap:'anywhere' }}>{t.title}</div>
                             <span style={{ fontSize:'0.52rem', color: tsc.color, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em' }}>{t.status.replace(/_/g,' ')}</span>
                           </div>
                         </div>
