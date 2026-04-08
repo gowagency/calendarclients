@@ -362,8 +362,9 @@ function getMonthWeekdayGrid(year: number, month: number): (Date | null)[][] {
   return weeks;
 }
 
-function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, search, onSearchChange }: { posts: Post[]; tasks: ProdTask[]; onSelectPost: (p: Post) => void; onNewPost: () => void; updatePost: any; search: string; onSearchChange: (v: string) => void; }) {
+function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSearchChange }: { posts: Post[]; onSelectPost: (p: Post) => void; onNewPost: () => void; updatePost: any; search: string; onSearchChange: (v: string) => void; }) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
 
@@ -384,16 +385,23 @@ function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, searc
     return map;
   }, [posts]);
 
-  const tasksByDate = useMemo(() => {
-    const map: Record<string, ProdTask[]> = {};
-    tasks.forEach(t => {
-      if (t.dueDate) {
-        if (!map[t.dueDate]) map[t.dueDate] = [];
-        map[t.dueDate].push(t);
-      }
-    });
-    return map;
-  }, [tasks]);
+  const handleDrop = (key: string, e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverKey(null);
+    const postId = e.dataTransfer.getData('postId');
+    if (!postId) return;
+    const [y, m, d] = key.split('-').map(Number);
+    const newDate = new Date(y, m - 1, d, 12, 0, 0).getTime();
+    updatePost.mutate({ id: Number(postId), scheduledDate: newDate });
+  };
+
+  const handleDropUnscheduled = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverKey(null);
+    const postId = e.dataTransfer.getData('postId');
+    if (!postId) return;
+    updatePost.mutate({ id: Number(postId), scheduledDate: null });
+  };
 
   const unscheduled = useMemo(() => posts.filter(p => !p.scheduledDate), [posts]);
   const navMonth = (dir: number) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + dir); setCurrentMonth(d); };
@@ -447,8 +455,15 @@ function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, searc
                 const dayPosts = postsByDate[key] || [];
                 const feriado = FERIADOS_BR[key];
                 const isToday = key === todayKey;
+                const isDragOver = dragOverKey === key;
                 return (
-                  <div key={key} style={{ background: 'var(--bg-elevated)', border: isToday ? '2px solid #5c7aff' : '1px solid var(--border)', borderRadius: '10px', padding: '0.5rem 0.6rem', minHeight: '90px', position: 'relative', minWidth: 0, overflow: 'hidden' }}>
+                  <div
+                    key={key}
+                    onDragOver={e => { e.preventDefault(); setDragOverKey(key); }}
+                    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverKey(null); }}
+                    onDrop={e => handleDrop(key, e)}
+                    style={{ background: isDragOver ? 'var(--bg-secondary)' : 'var(--bg-elevated)', border: isDragOver ? '2px dashed #5c7aff' : isToday ? '2px solid #5c7aff' : '1px solid var(--border)', borderRadius: '10px', padding: '0.5rem 0.6rem', minHeight: '90px', position: 'relative', minWidth: 0, overflow: 'hidden', transition: 'background 0.1s, border 0.1s' }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.3rem' }}>
                       <span style={{ fontSize: '0.85rem', fontWeight: isToday ? 700 : 400, color: isToday ? '#5c7aff' : 'var(--text-secondary)', fontFamily: 'DM Sans, system-ui' }}>{day.getDate()}</span>
                     </div>
@@ -460,7 +475,13 @@ function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, searc
                       const sc = STATUS_CONFIG[p.status];
                       const pilarTag = PILARES.find(pl => pl.id === (p as any).pilar);
                       return (
-                        <button key={p.id} onClick={() => onSelectPost(p)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', background: fc.bg, border: `1px solid ${fc.border}`, borderRadius: '6px', padding: '0 0.4rem 0.3rem 0', marginBottom: '0.25rem', display: 'flex', overflow: 'hidden' }}>
+                        <button
+                          key={p.id}
+                          draggable
+                          onDragStart={e => { e.dataTransfer.setData('postId', p.id.toString()); e.dataTransfer.effectAllowed = 'move'; }}
+                          onClick={() => onSelectPost(p)}
+                          style={{ width: '100%', textAlign: 'left', cursor: 'grab', background: fc.bg, border: `1px solid ${fc.border}`, borderRadius: '6px', padding: '0 0.4rem 0.3rem 0', marginBottom: '0.25rem', display: 'flex', overflow: 'hidden' }}
+                        >
                           {/* color accent bar */}
                           <div style={{ width: 4, flexShrink: 0, background: fc.color, borderRadius: '6px 0 0 6px', alignSelf: 'stretch', minHeight: '100%' }} />
                           <div style={{ flex: 1, minWidth: 0, paddingLeft: '0.35rem', paddingTop: '0.3rem' }}>
@@ -474,32 +495,8 @@ function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, searc
                         </button>
                       );
                     })}
-                    {/* Tasks de produção com vencimento neste dia */}
-                    {(tasksByDate[key] || []).map(t => {
-                      const tsc = (() => {
-                        const cfg: Record<string,{color:string;bg:string;border:string}> = {
-                          nao_iniciado: {color:'#8B8177',bg:'rgba(139,129,119,0.10)',border:'rgba(139,129,119,0.25)'},
-                          em_andamento: {color:'#A07848',bg:'rgba(160,120,72,0.12)',border:'rgba(160,120,72,0.28)'},
-                          em_aprovacao: {color:'#A4735E',bg:'rgba(164,115,94,0.12)',border:'rgba(164,115,94,0.28)'},
-                          aprovado:     {color:'#6B8A6E',bg:'rgba(107,138,110,0.12)',border:'rgba(107,138,110,0.28)'},
-                          em_gravacao:  {color:'#7B3A12',bg:'rgba(123,58,18,0.10)',border:'rgba(123,58,18,0.25)'},
-                          gravado:      {color:'#4E7052',bg:'rgba(107,138,110,0.18)',border:'rgba(107,138,110,0.36)'},
-                          postado:      {color:'#5C2B0A',bg:'rgba(123,58,18,0.16)',border:'rgba(123,58,18,0.32)'},
-                        };
-                        return cfg[t.status] ?? cfg['nao_iniciado'];
-                      })();
-                      return (
-                        <div key={t.id} style={{ width:'100%', minWidth:0, background: tsc.bg, border: `1px dashed ${tsc.border}`, borderRadius:'6px', padding:'0.28rem 0.4rem', marginBottom:'0.2rem', display:'flex', alignItems:'flex-start', gap:'0.25rem', overflow:'hidden' }}>
-                          <span style={{ fontSize:'0.58rem', flexShrink:0, marginTop:'0.05rem' }}>📋</span>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:'0.62rem', color:'var(--text-primary)', fontWeight:600, lineHeight:1.2, wordBreak:'break-word', overflowWrap:'anywhere' }}>{t.title}</div>
-                            <span style={{ fontSize:'0.52rem', color: tsc.color, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em' }}>{t.status.replace(/_/g,' ')}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {dayPosts.length === 0 && (tasksByDate[key] || []).length === 0 && !feriado && (
-                      <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>—</p>
+                    {dayPosts.length === 0 && !feriado && (
+                      <p style={{ fontSize: '0.65rem', color: isDragOver ? '#5c7aff' : 'var(--text-tertiary)', fontStyle: 'italic' }}>{isDragOver ? '+ soltar aqui' : '—'}</p>
                     )}
                   </div>
                 );
@@ -510,15 +507,21 @@ function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, searc
       </div>
 
       {/* Unscheduled */}
+      <div
+        onDragOver={e => { e.preventDefault(); setDragOverKey('unscheduled'); }}
+        onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverKey(null); }}
+        onDrop={handleDropUnscheduled}
+        style={{ marginTop: '1.5rem', borderRadius: '12px', border: dragOverKey === 'unscheduled' ? '2px dashed #5c7aff' : '2px dashed transparent', padding: '0.25rem', transition: 'border 0.1s' }}
+      >
       {unscheduled.length > 0 && (
-        <div style={{ marginTop: '1.5rem' }}>
+        <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <Clock3 size={14} style={{ color: 'var(--text-tertiary)' }} />
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Aguardando agendamento ({unscheduled.length})</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.5rem' }}>
             {unscheduled.map(p => (
-              <div key={p.id} style={{ position: 'relative' }}>
+              <div key={p.id} style={{ position: 'relative' }} draggable onDragStart={(e: React.DragEvent) => { e.dataTransfer.setData('postId', p.id.toString()); e.dataTransfer.effectAllowed = 'move'; }}>
                 <PostCard post={p} onClick={() => onSelectPost(p)} />
                 <div style={{ marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.4rem', paddingLeft: '0.25rem' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Agendar:</span>
@@ -529,6 +532,7 @@ function CalendarView({ posts, tasks, onSelectPost, onNewPost, updatePost, searc
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -1409,7 +1413,6 @@ export default function Home({ client }: { client: ClientSlug }) {
             >
               <CalendarView
                 posts={filteredPosts}
-                tasks={allTasks}
                 onSelectPost={setSelectedPost}
                 onNewPost={() => setShowNewPost(true)}
                 updatePost={updatePost}
