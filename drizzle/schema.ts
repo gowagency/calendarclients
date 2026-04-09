@@ -58,6 +58,9 @@ export const posts = mysqlTable("posts", {
   salvamentos: int("salvamentos"),
   visualizacoes: int("visualizacoes"),
   sortOrder: int("sortOrder").default(0),
+  obsAliny: text("obsAliny"),
+  obsAlinyRead: int("obsAlinyRead").default(0),
+  approvalHistory: text("approvalHistory"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

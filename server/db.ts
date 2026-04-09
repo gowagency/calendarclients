@@ -33,6 +33,22 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
       }
     }
 
+    // Add obsAliny, obsAlinyRead, approvalHistory to posts
+    const postCols = [
+      `ALTER TABLE posts ADD COLUMN obsAliny TEXT`,
+      `ALTER TABLE posts ADD COLUMN obsAlinyRead INT DEFAULT 0`,
+      `ALTER TABLE posts ADD COLUMN approvalHistory TEXT`,
+    ];
+    for (const colSql of postCols) {
+      try {
+        await db.execute(sql.raw(colSql));
+      } catch (e: any) {
+        if (!e.message?.includes("Duplicate column")) {
+          console.warn("[DB] posts column:", e.message?.slice(0, 60));
+        }
+      }
+    }
+
     // Create prod_tasks table for production task tracking (synced across devices)
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS prod_tasks (

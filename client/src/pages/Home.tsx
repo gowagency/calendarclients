@@ -490,6 +490,9 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
                             <div style={{ marginTop: '0.15rem', display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
                               {pilarTag && <span style={{ fontSize: '0.52rem', fontWeight: 700, color: pilarTag.color, background: `${pilarTag.color}15`, border: `1px solid ${pilarTag.color}30`, padding: '0.05rem 0.3rem', borderRadius: '20px', whiteSpace: 'nowrap' }}>{pilarTag.label}</span>}
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.55rem', color: sc.color }}>{sc.icon} <span>{sc.label}</span></span>
+                              {(p as any).obsAliny && (p as any).obsAliny.replace(/<[^>]*>/g, '').trim() && !(p as any).obsAlinyRead && (
+                                <span style={{ fontSize: '0.5rem', fontWeight: 700, color: '#4E7052', background: 'rgba(107,138,110,0.18)', border: '1px solid rgba(107,138,110,0.3)', padding: '0.05rem 0.25rem', borderRadius: '20px', whiteSpace: 'nowrap' }}>✎</span>
+                              )}
                             </div>
                           </div>
                         </button>
@@ -598,6 +601,7 @@ function QuickBlock({ client }: { client: string }) {
   const [newTask,     setNewTask]    = useState({ ...EMPTY_TASK });
   const [filterPilar, setFilterPilar] = useState('');
   const [filterType,  setFilterType]  = useState('');
+  const [activeTab,   setActiveTab]   = useState<string>('todos');
 
   // Migrate from localStorage on first load — localStorage only cleared after ALL tasks confirmed saved
   const tasks: ProdTask[] = (tasksQuery.data as ProdTask[]) || [];
@@ -659,6 +663,7 @@ function QuickBlock({ client }: { client: string }) {
     .filter(t => {
       if (filterPilar && t.pilar !== filterPilar) return false;
       if (filterType  && t.type  !== filterType)  return false;
+      if (activeTab !== 'todos' && t.type !== activeTab) return false;
       return true;
     });
 
@@ -683,9 +688,9 @@ function QuickBlock({ client }: { client: string }) {
           {tasks.length > 0 && (
             <span style={{
               fontSize: '0.65rem', borderRadius: '10px', padding: '0.1rem 0.45rem', fontWeight: 700,
-              background: (filterPilar || filterType) ? 'rgba(160,120,72,0.15)' : 'var(--bg-secondary)',
-              color: (filterPilar || filterType) ? '#A07848' : 'var(--text-secondary)',
-              border: (filterPilar || filterType) ? '1px solid rgba(160,120,72,0.35)' : '1px solid transparent',
+              background: (filterPilar || filterType || activeTab !== 'todos') ? 'rgba(160,120,72,0.15)' : 'var(--bg-secondary)',
+              color: (filterPilar || filterType || activeTab !== 'todos') ? '#A07848' : 'var(--text-secondary)',
+              border: (filterPilar || filterType || activeTab !== 'todos') ? '1px solid rgba(160,120,72,0.35)' : '1px solid transparent',
               transition: 'all 0.15s',
             }}>
               {sorted.length}{sorted.length !== tasks.length ? `/${tasks.length}` : ''}
@@ -703,10 +708,9 @@ function QuickBlock({ client }: { client: string }) {
       {/* ── FILTROS (dropdowns nativos — PC e mobile) ── */}
       {tasks.length > 0 && (() => {
         const pilarAtivo  = PILARES.find(p => p.id === filterPilar);
-        const tipoAtivo   = filterType ? PROD_TYPE_CONFIG[filterType as ProdType] : null;
-        const algumFiltro = filterPilar || filterType;
+        const algumFiltro = filterPilar;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
             {/* Ícone + label */}
             <span style={{ fontSize: '0.68rem', color: algumFiltro ? '#A07848' : 'var(--text-tertiary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
               <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
@@ -733,26 +737,6 @@ function QuickBlock({ client }: { client: string }) {
               {PILARES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
 
-            {/* Formato select */}
-            <select
-              value={filterType}
-              onChange={e => setFilterType(e.target.value)}
-              style={{
-                fontSize: '0.75rem', fontWeight: tipoAtivo ? 700 : 500,
-                color: tipoAtivo ? tipoAtivo.color : 'var(--text-secondary)',
-                background: tipoAtivo ? `${tipoAtivo.color}12` : 'var(--bg-elevated)',
-                border: tipoAtivo ? `1.5px solid ${tipoAtivo.color}50` : '1px solid var(--border)',
-                borderRadius: '8px', padding: '0.3rem 0.6rem',
-                cursor: 'pointer', flex: '1 1 120px', minWidth: '110px', maxWidth: '180px',
-                transition: 'all 0.15s',
-              }}
-            >
-              <option value="">Formato: todos</option>
-              {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
-            </select>
-
             {/* Limpar filtros */}
             {algumFiltro && (
               <button
@@ -766,6 +750,38 @@ function QuickBlock({ client }: { client: string }) {
           </div>
         );
       })()}
+
+      {/* Type tabs */}
+      <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '1px solid var(--border)', marginBottom: '0.5rem', overflowX: 'auto' }}>
+        {([
+          { id: 'todos', label: 'Todos' },
+          { id: 'a_definir', label: 'A Definir' },
+          { id: 'carrossel', label: 'Carrossel' },
+          { id: 'reels', label: 'Reels' },
+          { id: 'narracao', label: 'Narração' },
+          { id: 'spotify', label: 'Spotify', color: '#4E7052' },
+        ] as { id: string; label: string; color?: string }[]).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: '0.35rem 0.75rem',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === tab.id ? `2px solid ${tab.color || 'var(--text-primary)'}` : '2px solid transparent',
+              cursor: 'pointer',
+              fontSize: '0.78rem',
+              fontWeight: activeTab === tab.id ? 700 : 400,
+              color: activeTab === tab.id ? (tab.color || 'var(--text-primary)') : 'var(--text-tertiary)',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s',
+              flexShrink: 0,
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {/* ── ADD FORM ── */}
       {adding && (

@@ -85,6 +85,10 @@ export const appRouter = router({
           comentariosCount: z.number().nullable().optional(),
           salvamentos: z.number().nullable().optional(),
           visualizacoes: z.number().nullable().optional(),
+          pilar: z.string().nullable().optional(),
+          obsAliny: z.string().nullable().optional(),
+          obsAlinyRead: z.number().nullable().optional(),
+          approvalHistory: z.string().nullable().optional(),
         })
       )
       .mutation(({ input }) => {
