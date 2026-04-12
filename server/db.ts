@@ -90,7 +90,26 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
         console.warn("[DB] approvalStatus column:", e.message?.slice(0, 60));
       }
     }
-    console.log("[DB] prod_tasks table ready");
+    // Migrate old approval values from status → approvalStatus
+    // Tasks that had status IN ('em_aprovacao','aprovado','ajuste','reprovado')
+    // move approval state to new column and reset status to 'nao_iniciado'
+    await db.execute(sql`
+      UPDATE prod_tasks
+      SET approvalStatus = status, status = 'nao_iniciado'
+      WHERE status IN ('em_aprovacao', 'aprovado', 'ajuste', 'reprovado')
+        AND (approvalStatus IS NULL OR approvalStatus = '')
+    `);
+    // Auto-archive reprovado (if any slipped through before this migration)
+    await db.execute(sql`
+      UPDATE prod_tasks
+      SET archived = 1
+      WHERE approvalStatus = 'reprovado' AND (archived IS NULL OR archived = 0)
+    `);
+    // Migrate em_gravacao → gravado (old status no longer in new config)
+    await db.execute(sql`
+      UPDATE prod_tasks SET status = 'gravado' WHERE status = 'em_gravacao'
+    `);
+    console.log("[DB] prod_tasks table ready + approval status migrated");
   } catch (e) {
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));
   }
