@@ -674,10 +674,14 @@ function QuickBlock({ client }: { client: string }) {
   const isArchived = (t: ProdTask) => !!t.archived;
   const showingArchived = activeTab === 'arquivadas';
 
-  // Sort: tasks without date at bottom, others by date asc
+  // Sort: aprovado sobe ao topo, depois por data asc, sem data vai pro fim
   const sorted = [...tasks]
     .filter(t => showingArchived ? isArchived(t) : !isArchived(t))
     .sort((a, b) => {
+      const aAprov = a.approvalStatus === 'aprovado';
+      const bAprov = b.approvalStatus === 'aprovado';
+      if (aAprov && !bAprov) return -1;
+      if (bAprov && !aAprov) return 1;
       if (!a.dueDate && !b.dueDate) return 0;
       if (!a.dueDate) return 1;
       if (!b.dueDate) return -1;
