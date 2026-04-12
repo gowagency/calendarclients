@@ -207,6 +207,7 @@ export const appRouter = router({
         canvaUrl: z.string().optional().nullable(),
         creativoUrl: z.string().optional().nullable(),
         pilar: z.string().optional().nullable(),
+        archived: z.number().optional(),
       }))
       .mutation(({ input }) => {
         const { id, ...fields } = input;

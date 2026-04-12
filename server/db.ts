@@ -74,6 +74,14 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
         console.warn("[DB] creativoUrl column:", e.message?.slice(0, 60));
       }
     }
+    // Add archived column (safe: ignore if already exists)
+    try {
+      await db.execute(sql`ALTER TABLE prod_tasks ADD COLUMN archived INT DEFAULT 0`);
+    } catch (e: any) {
+      if (!e.message?.includes("Duplicate column")) {
+        console.warn("[DB] archived column:", e.message?.slice(0, 60));
+      }
+    }
     console.log("[DB] prod_tasks table ready");
   } catch (e) {
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));

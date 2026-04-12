@@ -557,6 +557,7 @@ type ProdTask = {
   canvaUrl: string | null;
   creativoUrl: string | null;
   pilar: string | null;
+  archived?: number | null;
   createdAt: number;
 };
 
@@ -656,8 +657,12 @@ function QuickBlock({ client }: { client: string }) {
 
   const deleteTask = (id: string) => deleteTaskM.mutate({ id });
 
-  // Sort: tasks without date at bottom, others by date asc
+  const isArchived = (t: ProdTask) => !!t.archived;
+  const showingArchived = activeTab === 'arquivadas';
+
+  // Sort: tasks without date at bottom, others by date asc; reprovado always last
   const sorted = [...tasks]
+    .filter(t => showingArchived ? isArchived(t) : !isArchived(t))
     .sort((a, b) => {
       if (a.status === 'reprovado' && b.status !== 'reprovado') return 1;
       if (b.status === 'reprovado' && a.status !== 'reprovado') return -1;
@@ -667,9 +672,9 @@ function QuickBlock({ client }: { client: string }) {
       return a.dueDate.localeCompare(b.dueDate);
     })
     .filter(t => {
+      if (showingArchived) return true; // no extra filters in archived view
       if (filterStatus && t.status !== filterStatus) return false;
       if (filterType   && t.type   !== filterType)   return false;
-      if (activeTab !== 'todos' && t.type !== activeTab) return false;
       return true;
     });
 
@@ -691,28 +696,35 @@ function QuickBlock({ client }: { client: string }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tasks.length > 0 ? '0.6rem' : '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <span className="label">Produção</span>
-          {tasks.length > 0 && (
+          {tasks.filter(t => !isArchived(t)).length > 0 && !showingArchived && (
             <span style={{
               fontSize: '0.65rem', borderRadius: '10px', padding: '0.1rem 0.45rem', fontWeight: 700,
-              background: (filterStatus || filterType || activeTab !== 'todos') ? 'rgba(160,120,72,0.15)' : 'var(--bg-secondary)',
-              color: (filterStatus || filterType || activeTab !== 'todos') ? '#A07848' : 'var(--text-secondary)',
-              border: (filterStatus || filterType || activeTab !== 'todos') ? '1px solid rgba(160,120,72,0.35)' : '1px solid transparent',
+              background: (filterStatus || filterType) ? 'rgba(160,120,72,0.15)' : 'var(--bg-secondary)',
+              color: (filterStatus || filterType) ? '#A07848' : 'var(--text-secondary)',
+              border: (filterStatus || filterType) ? '1px solid rgba(160,120,72,0.35)' : '1px solid transparent',
               transition: 'all 0.15s',
             }}>
-              {sorted.length}{sorted.length !== tasks.length ? `/${tasks.length}` : ''}
+              {sorted.length}{sorted.length !== tasks.filter(t => !isArchived(t)).length ? `/${tasks.filter(t => !isArchived(t)).length}` : ''}
+            </span>
+          )}
+          {showingArchived && (
+            <span style={{ fontSize: '0.65rem', borderRadius: '10px', padding: '0.1rem 0.45rem', fontWeight: 700, background: 'rgba(139,129,119,0.12)', color: '#8B8177', border: '1px solid rgba(139,129,119,0.25)' }}>
+              {sorted.length} arquivada{sorted.length !== 1 ? 's' : ''}
             </span>
           )}
         </div>
-        <button
-          onClick={() => { setAdding(a => !a); setNewTask({ ...EMPTY_TASK }); }}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', background: adding ? 'var(--bg-secondary)' : 'var(--text-primary)', color: adding ? 'var(--text-secondary)' : 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, transition: 'all 0.15s' }}
-        >
-          {adding ? '✕ Cancelar' : '+ Nova tarefa'}
-        </button>
+        {!showingArchived && (
+          <button
+            onClick={() => { setAdding(a => !a); setNewTask({ ...EMPTY_TASK }); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', background: adding ? 'var(--bg-secondary)' : 'var(--text-primary)', color: adding ? 'var(--text-secondary)' : 'var(--bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, transition: 'all 0.15s' }}
+          >
+            {adding ? '✕ Cancelar' : '+ Nova tarefa'}
+          </button>
+        )}
       </div>
 
       {/* ── FILTRO DE STATUS ── */}
-      {tasks.length > 0 && (() => {
+      {tasks.length > 0 && !showingArchived && (() => {
         const stAtivo = filterStatus ? PROD_STATUS_CONFIG[filterStatus as ProdStatus] : null;
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
@@ -762,6 +774,7 @@ function QuickBlock({ client }: { client: string }) {
           { id: 'reels', label: 'Reels' },
           { id: 'narracao', label: 'Narração' },
           { id: 'spotify', label: 'Spotify', color: '#4E7052' },
+          { id: 'arquivadas', label: '📦 Arquivadas', color: '#8B8177' },
         ] as { id: string; label: string; color?: string }[]).map(tab => (
           <button
             key={tab.id}
@@ -899,7 +912,7 @@ function QuickBlock({ client }: { client: string }) {
       {/* ── TASK LIST ── */}
       {sorted.length === 0 && !adding && (
         <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '1.5rem 0' }}>
-          Nenhuma tarefa. Clique em "+ Nova tarefa" para começar.
+          {showingArchived ? 'Nenhuma tarefa arquivada.' : 'Nenhuma tarefa. Clique em "+ Nova tarefa" para começar.'}
         </p>
       )}
 
@@ -1107,8 +1120,14 @@ function QuickBlock({ client }: { client: string }) {
                     )}
                   </div>
 
-                  {/* Delete */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  {/* Actions: archive + delete */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => updateTaskM.mutate({ id: task.id, archived: isArchived(task) ? 0 : 1 })}
+                      style={{ padding: '0.3rem 0.75rem', background: 'none', border: '1px solid rgba(139,129,119,0.35)', borderRadius: '7px', cursor: 'pointer', fontSize: '0.75rem', color: '#8B8177', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                    >
+                      {isArchived(task) ? '📤 Desarquivar' : '📦 Arquivar'}
+                    </button>
                     <button onClick={() => deleteTask(task.id)} style={{ padding: '0.3rem 0.75rem', background: 'none', border: '1px solid rgba(216,90,48,0.3)', borderRadius: '7px', cursor: 'pointer', fontSize: '0.75rem', color: '#D85A30', fontWeight: 500 }}>
                       Remover tarefa
                     </button>

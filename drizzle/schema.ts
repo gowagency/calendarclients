@@ -104,6 +104,7 @@ export const prodTasks = mysqlTable("prod_tasks", {
   canvaUrl: text("canvaUrl"),
   creativoUrl: text("creativoUrl"),
   pilar: varchar("pilar", { length: 100 }),
+  archived: int("archived").default(0),
   createdAt: bigint("createdAt", { mode: "number" }).notNull(),
 });
 
