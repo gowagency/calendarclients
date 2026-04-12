@@ -116,13 +116,13 @@ const PILARES_ALINY = [
   { id: 'espiritualidade_implicita', label: 'Espiritualidade Implícita',  color: '#A4735E' }, // terracotta
 ] as const;
 
-// Junior Lopes — paleta profissional/azul
+// Junior Lopes — paleta sóbria, verde musgo e terrosos
 const PILARES_JUNIOR = [
-  { id: 'financas_pessoais',    label: 'Finanças Pessoais',    color: '#1565C0' }, // azul
-  { id: 'planejamento_fiscal',  label: 'Planejamento Fiscal',  color: '#2E7D32' }, // verde
-  { id: 'empreendedorismo',     label: 'Empreendedorismo',     color: '#E65100' }, // laranja
-  { id: 'educacao_financeira',  label: 'Educação Financeira',  color: '#6A1B9A' }, // roxo
-  { id: 'lifestyle',            label: 'Lifestyle',            color: '#37474F' }, // cinza-azul
+  { id: 'financas_pessoais',    label: 'Finanças Pessoais',    color: '#3D5C3A' }, // verde musgo profundo
+  { id: 'planejamento_fiscal',  label: 'Planejamento Fiscal',  color: '#5C7A5C' }, // verde musgo médio
+  { id: 'empreendedorismo',     label: 'Empreendedorismo',     color: '#7A7A4A' }, // oliva terroso
+  { id: 'educacao_financeira',  label: 'Educação Financeira',  color: '#7A6B5A' }, // pedra quente
+  { id: 'lifestyle',            label: 'Lifestyle',            color: '#5C4A3A' }, // terra escura
 ] as const;
 
 const PILARES_BY_CLIENT: Record<string, readonly { id: string; label: string; color: string }[]> = {
