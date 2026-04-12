@@ -32,7 +32,7 @@ export const appRouter = router({
           conteudo: z.string().optional(),
           legenda: z.string().optional(),
           status: z
-            .enum(["nao_iniciado", "em_andamento", "em_aprovacao", "aprovado", "postado"])
+            .enum(["nao_iniciado", "em_andamento", "em_aprovacao", "aprovado", "postado", "reprovado"])
             .default("nao_iniciado"),
           scheduledDate: z.number().optional(),
           canvaLink: z.string().optional(),
@@ -63,7 +63,7 @@ export const appRouter = router({
           conteudo: z.string().nullable().optional(),
           legenda: z.string().nullable().optional(),
           status: z
-            .enum(["nao_iniciado", "em_andamento", "em_aprovacao", "aprovado", "postado"])
+            .enum(["nao_iniciado", "em_andamento", "em_aprovacao", "aprovado", "postado", "reprovado"])
             .optional(),
           scheduledDate: z.number().nullable().optional(),
           canvaLink: z.string().nullable().optional(),

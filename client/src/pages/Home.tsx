@@ -542,7 +542,7 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
 
 // ─── QUICK BLOCK ──────────────────────────────────────────────────────────────
 
-type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'em_aprovacao' | 'aprovado' | 'em_gravacao' | 'gravado' | 'postado';
+type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'em_aprovacao' | 'aprovado' | 'em_gravacao' | 'gravado' | 'postado' | 'reprovado';
 type ProdType   = 'reels' | 'narracao' | 'carrossel' | 'spotify' | 'a_definir';
 
 type ProdTask = {
@@ -569,10 +569,11 @@ const PROD_STATUS_CONFIG: Record<ProdStatus, { label: string; bg: string; border
   em_gravacao:  { label: 'Em Gravação',  bg: 'rgba(123,58,18,0.10)',   border: 'rgba(123,58,18,0.25)',   color: '#7B3A12' }, // chocolate
   gravado:      { label: 'Gravado',      bg: 'rgba(107,138,110,0.18)', border: 'rgba(107,138,110,0.36)', color: '#4E7052' }, // sage escuro
   postado:      { label: 'Postado',      bg: 'rgba(123,58,18,0.16)',   border: 'rgba(123,58,18,0.32)',   color: '#5C2B0A' }, // chocolate escuro
+  reprovado:    { label: 'Reprovado',    bg: 'rgba(220,38,38,0.07)',   border: 'rgba(220,38,38,0.22)',   color: '#DC2626' }, // vermelho
 };
 
 const PROD_STATUS_ORDER: ProdStatus[] = [
-  'nao_iniciado', 'em_andamento', 'em_aprovacao', 'aprovado', 'em_gravacao', 'gravado', 'postado',
+  'nao_iniciado', 'em_andamento', 'em_aprovacao', 'aprovado', 'em_gravacao', 'gravado', 'postado', 'reprovado',
 ];
 
 const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
@@ -658,6 +659,8 @@ function QuickBlock({ client }: { client: string }) {
   // Sort: tasks without date at bottom, others by date asc
   const sorted = [...tasks]
     .sort((a, b) => {
+      if (a.status === 'reprovado' && b.status !== 'reprovado') return 1;
+      if (b.status === 'reprovado' && a.status !== 'reprovado') return -1;
       if (!a.dueDate && !b.dueDate) return 0;
       if (!a.dueDate) return 1;
       if (!b.dueDate) return -1;

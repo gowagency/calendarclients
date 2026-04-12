@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Instagram, Linkedin, Youtube, Music, Newspaper,
-  Clock, Pencil, Eye, CheckCircle2, Send as SendIcon,
+  Clock, Pencil, Eye, CheckCircle2, Send as SendIcon, X,
 } from 'lucide-react';
 
 // ─── SOCIAL NETWORKS ───────────────────────────────────────────────────────
@@ -61,9 +61,15 @@ export const STATUS_CONFIG: Record<string, { label: string; color: string; bg: s
     bg: 'var(--bg-secondary)',
     icon: React.createElement(SendIcon, { size: 12 }),
   },
+  reprovado: {
+    label: 'Reprovado',
+    color: '#DC2626',
+    bg: 'rgba(220,38,38,0.07)',
+    icon: React.createElement(X, { size: 12 }),
+  },
 };
 
-export const STATUS_ORDER = ['nao_iniciado', 'em_andamento', 'em_aprovacao', 'aprovado', 'postado'] as const;
+export const STATUS_ORDER = ['nao_iniciado', 'em_andamento', 'em_aprovacao', 'aprovado', 'postado', 'reprovado'] as const;
 
 // ─── FORMATS ───────────────────────────────────────────────────────────────
 

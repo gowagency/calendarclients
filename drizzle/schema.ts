@@ -35,6 +35,7 @@ export const posts = mysqlTable("posts", {
     "em_aprovacao",
     "aprovado",
     "postado",
+    "reprovado",
   ])
     .default("nao_iniciado")
     .notNull(),
