@@ -542,7 +542,8 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
 
 // ─── QUICK BLOCK ──────────────────────────────────────────────────────────────
 
-type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'em_aprovacao' | 'aprovado' | 'em_gravacao' | 'gravado' | 'postado' | 'reprovado';
+// ── Produção: andamento do trabalho interno
+type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'gravado' | 'finalizado' | 'postado';
 type ProdType   = 'reels' | 'narracao' | 'carrossel' | 'spotify' | 'a_definir';
 
 type ProdTask = {
@@ -551,6 +552,7 @@ type ProdTask = {
   type: string;
   title: string;
   status: string;
+  approvalStatus?: string | null;
   dueDate: string | null;
   obs: string | null;
   obsAliny: string | null;
@@ -561,32 +563,41 @@ type ProdTask = {
   createdAt: number;
 };
 
-// Pill style — paleta Aliny Rayze: terrosos, sage, camel
+// ── Status de Produção (andamento interno)
 const PROD_STATUS_CONFIG: Record<ProdStatus, { label: string; bg: string; border: string; color: string }> = {
-  nao_iniciado: { label: 'Não iniciado', bg: 'rgba(139,129,119,0.10)', border: 'rgba(139,129,119,0.25)', color: '#8B8177' }, // taupe
-  em_andamento: { label: 'Em andamento', bg: 'rgba(160,120,72,0.12)',  border: 'rgba(160,120,72,0.28)',  color: '#A07848' }, // camel
-  em_aprovacao: { label: 'Em aprovação', bg: 'rgba(164,115,94,0.12)',  border: 'rgba(164,115,94,0.28)',  color: '#A4735E' }, // terracotta
-  aprovado:     { label: 'Aprovado',     bg: 'rgba(107,138,110,0.12)', border: 'rgba(107,138,110,0.28)', color: '#6B8A6E' }, // sage green
-  em_gravacao:  { label: 'Em Gravação',  bg: 'rgba(123,58,18,0.10)',   border: 'rgba(123,58,18,0.25)',   color: '#7B3A12' }, // chocolate
-  gravado:      { label: 'Gravado',      bg: 'rgba(107,138,110,0.18)', border: 'rgba(107,138,110,0.36)', color: '#4E7052' }, // sage escuro
-  postado:      { label: 'Postado',      bg: 'rgba(123,58,18,0.16)',   border: 'rgba(123,58,18,0.32)',   color: '#5C2B0A' }, // chocolate escuro
-  reprovado:    { label: 'Reprovado',    bg: 'rgba(220,38,38,0.07)',   border: 'rgba(220,38,38,0.22)',   color: '#DC2626' }, // vermelho
+  nao_iniciado: { label: 'Não Iniciado', bg: 'rgba(139,129,119,0.10)', border: 'rgba(139,129,119,0.25)', color: '#8B8177' },
+  em_andamento: { label: 'Em Andamento', bg: 'rgba(160,120,72,0.12)',  border: 'rgba(160,120,72,0.28)',  color: '#A07848' },
+  gravado:      { label: 'Gravado',      bg: 'rgba(107,138,110,0.18)', border: 'rgba(107,138,110,0.36)', color: '#4E7052' },
+  finalizado:   { label: 'Finalizado',   bg: 'rgba(107,138,110,0.25)', border: 'rgba(107,138,110,0.45)', color: '#3A6E3E' },
+  postado:      { label: 'Postado',      bg: 'rgba(123,58,18,0.16)',   border: 'rgba(123,58,18,0.32)',   color: '#5C2B0A' },
 };
 
 const PROD_STATUS_ORDER: ProdStatus[] = [
-  'nao_iniciado', 'em_andamento', 'em_aprovacao', 'aprovado', 'em_gravacao', 'gravado', 'postado', 'reprovado',
+  'nao_iniciado', 'em_andamento', 'gravado', 'finalizado', 'postado',
 ];
 
+// ── Status de Aprovação (cliente: Aliny / Junior)
+const APPROVAL_STATUS_CONFIG: Record<string, { label: string; bg: string; border: string; color: string }> = {
+  em_aprovacao: { label: 'Em Aprovação', bg: 'rgba(164,115,94,0.12)',  border: 'rgba(164,115,94,0.28)',  color: '#A4735E' },
+  aprovado:     { label: 'Aprovado',     bg: 'rgba(107,138,110,0.12)', border: 'rgba(107,138,110,0.28)', color: '#6B8A6E' },
+  ajuste:       { label: 'Ajuste',       bg: 'rgba(160,120,72,0.14)',  border: 'rgba(160,120,72,0.30)',  color: '#A07848' },
+  reprovado:    { label: 'Reprovado',    bg: 'rgba(220,38,38,0.07)',   border: 'rgba(220,38,38,0.22)',   color: '#DC2626' },
+};
+
+const APPROVAL_STATUS_ORDER = ['em_aprovacao', 'aprovado', 'ajuste', 'reprovado'];
+
+// ── Formatos
 const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
-  reels:     { label: 'Reels',      color: '#7B3A12' }, // chocolate — destaque
-  narracao:  { label: 'Narração',   color: '#8B8177' }, // taupe neutro
-  carrossel: { label: 'Carrossel',  color: '#A07848' }, // camel bege
-  spotify:   { label: 'Spotify',    color: '#4E7052' }, // sage green escuro
-  a_definir: { label: 'A Definir',  color: '#A8A09A' }, // cinza neutro
+  a_definir: { label: 'Post Estático', color: '#8B8177' },
+  carrossel:  { label: 'Carrossel',    color: '#A07848' },
+  reels:      { label: 'Reels',        color: '#7B3A12' },
+  narracao:   { label: 'Narração',     color: '#8B8177' },
+  spotify:    { label: 'Spotify',      color: '#4E7052' },
 };
 
 const EMPTY_TASK = {
   type: 'a_definir' as ProdType, title: '', status: 'nao_iniciado' as ProdStatus,
+  approvalStatus: '' as string,
   dueDate: '', obs: '', obsAliny: '', canvaUrl: '', creativoUrl: '', pilar: '',
 };
 
@@ -651,8 +662,11 @@ function QuickBlock({ client }: { client: string }) {
     setAdding(false);
   };
 
-  const updateTask = (id: string, field: keyof ProdTask, value: string) => {
-    updateTaskM.mutate({ id, [field]: value || null });
+  const updateTask = (id: string, field: string, value: string) => {
+    const extra: Record<string, unknown> = {};
+    if (field === 'approvalStatus' && value === 'reprovado') extra.archived = 1;
+    if (field === 'status' && value === 'postado') extra.archived = 1;
+    updateTaskM.mutate({ id, [field]: value || null, ...extra });
   };
 
   const deleteTask = (id: string) => deleteTaskM.mutate({ id });
@@ -660,12 +674,10 @@ function QuickBlock({ client }: { client: string }) {
   const isArchived = (t: ProdTask) => !!t.archived;
   const showingArchived = activeTab === 'arquivadas';
 
-  // Sort: tasks without date at bottom, others by date asc; reprovado always last
+  // Sort: tasks without date at bottom, others by date asc
   const sorted = [...tasks]
     .filter(t => showingArchived ? isArchived(t) : !isArchived(t))
     .sort((a, b) => {
-      if (a.status === 'reprovado' && b.status !== 'reprovado') return 1;
-      if (b.status === 'reprovado' && a.status !== 'reprovado') return -1;
       if (!a.dueDate && !b.dueDate) return 0;
       if (!a.dueDate) return 1;
       if (!b.dueDate) return -1;
@@ -769,7 +781,7 @@ function QuickBlock({ client }: { client: string }) {
       <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '1px solid var(--border)', marginBottom: '0.5rem', overflowX: 'auto' }}>
         {([
           { id: 'todos', label: 'Todos' },
-          { id: 'a_definir', label: 'A Definir' },
+          { id: 'a_definir', label: 'Post Estático' },
           { id: 'carrossel', label: 'Carrossel' },
           { id: 'reels', label: 'Reels' },
           { id: 'narracao', label: 'Narração' },
@@ -815,19 +827,23 @@ function QuickBlock({ client }: { client: string }) {
           {(() => {
             const sv  = PROD_STATUS_CONFIG[newTask.status];
             const tv  = PROD_TYPE_CONFIG[newTask.type];
+            const nav = newTask.approvalStatus ? APPROVAL_STATUS_CONFIG[newTask.approvalStatus] : null;
             const pv  = clientPilares.find(p => p.id === newTask.pilar);
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {/* Aprovação */}
                   <select
-                    value={newTask.status}
-                    onChange={e => setNewTask(f => ({ ...f, status: e.target.value as ProdStatus }))}
-                    style={{ fontSize: '0.75rem', fontWeight: 700, color: sv.color, background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                    value={newTask.approvalStatus}
+                    onChange={e => setNewTask(f => ({ ...f, approvalStatus: e.target.value }))}
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: nav ? nav.color : 'var(--text-tertiary)', background: nav ? nav.bg : 'var(--bg-secondary)', border: nav ? `1px solid ${nav.border}` : '1px solid var(--border)', borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
                   >
-                    {PROD_STATUS_ORDER.map(k => (
-                      <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
+                    <option value="">— Aprovação —</option>
+                    {APPROVAL_STATUS_ORDER.map(k => (
+                      <option key={k} value={k}>{APPROVAL_STATUS_CONFIG[k].label}</option>
                     ))}
                   </select>
+                  {/* Formato */}
                   <select
                     value={newTask.type}
                     onChange={e => setNewTask(f => ({ ...f, type: e.target.value as ProdType }))}
@@ -835,6 +851,16 @@ function QuickBlock({ client }: { client: string }) {
                   >
                     {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
                       <option key={k} value={k}>{v.label}</option>
+                    ))}
+                  </select>
+                  {/* Produção */}
+                  <select
+                    value={newTask.status}
+                    onChange={e => setNewTask(f => ({ ...f, status: e.target.value as ProdStatus }))}
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: sv.color, background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: '100px', padding: '4px 10px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                  >
+                    {PROD_STATUS_ORDER.map(k => (
+                      <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
                     ))}
                   </select>
                   <input
@@ -919,6 +945,7 @@ function QuickBlock({ client }: { client: string }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         {sorted.map(task => {
           const sc   = PROD_STATUS_CONFIG[task.status as ProdStatus] ?? PROD_STATUS_CONFIG['nao_iniciado'];
+          const ac   = task.approvalStatus ? (APPROVAL_STATUS_CONFIG[task.approvalStatus] ?? null) : null;
           const tc   = PROD_TYPE_CONFIG[task.type as ProdType] ?? PROD_TYPE_CONFIG['a_definir'];
           const open = expandedId === task.id;
           const over = isOverdue(task.dueDate, task.status);
@@ -957,8 +984,32 @@ function QuickBlock({ client }: { client: string }) {
                       {task.title || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic', fontWeight: 400 }}>Sem título</span>}
                     </span>
                   </div>
-                  {/* Bottom row: status + type + pilar tag + canva */}
+                  {/* Bottom row: 3 grupos de tags */}
                   <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {/* ── Grupo 1: Aprovação ── */}
+                    <select
+                      value={task.approvalStatus || ''}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => { e.stopPropagation(); updateTask(task.id, 'approvalStatus', e.target.value); }}
+                      style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', padding: '2px 9px', borderRadius: '100px', border: ac ? `1px solid ${ac.border}` : '1px solid var(--border)', background: ac ? ac.bg : 'var(--bg-secondary)', color: ac ? ac.color : 'var(--text-tertiary)', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                    >
+                      <option value="">— Aprovação —</option>
+                      {APPROVAL_STATUS_ORDER.map(k => (
+                        <option key={k} value={k}>{APPROVAL_STATUS_CONFIG[k].label}</option>
+                      ))}
+                    </select>
+                    {/* ── Grupo 2: Formato ── */}
+                    <select
+                      value={task.type}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => { e.stopPropagation(); updateTask(task.id, 'type', e.target.value); }}
+                      style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em', padding: '2px 8px', borderRadius: '100px', border: `1px solid ${tc.color}35`, background: `${tc.color}15`, color: tc.color, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                    >
+                      {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+                        <option key={k} value={k}>{v.label}</option>
+                      ))}
+                    </select>
+                    {/* ── Grupo 3: Produção ── */}
                     <select
                       value={task.status}
                       onClick={e => e.stopPropagation()}
@@ -967,16 +1018,6 @@ function QuickBlock({ client }: { client: string }) {
                     >
                       {PROD_STATUS_ORDER.map(k => (
                         <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={task.type}
-                      onClick={e => e.stopPropagation()}
-                      onChange={e => { e.stopPropagation(); updateTask(task.id, 'type', e.target.value); }}
-                      style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '100px', border: `1px solid ${tc.color}35`, background: `${tc.color}15`, color: tc.color, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
-                    >
-                      {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
-                        <option key={k} value={k}>{v.label}</option>
                       ))}
                     </select>
                     {/* Pilar tag */}
@@ -1028,7 +1069,51 @@ function QuickBlock({ client }: { client: string }) {
                   {/* Title + Date row */}
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.65rem' }}>
                     <input type="text" value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)} style={{ flex: 1, fontSize: '0.875rem' }} />
-                    <input type="date" value={task.dueDate} onChange={e => updateTask(task.id, 'dueDate', e.target.value)} style={{ fontSize: '0.78rem', padding: '0.2rem 0.45rem', flexShrink: 0 }} />
+                    <input type="date" value={task.dueDate || ''} onChange={e => updateTask(task.id, 'dueDate', e.target.value)} style={{ fontSize: '0.78rem', padding: '0.2rem 0.45rem', flexShrink: 0 }} />
+                  </div>
+
+                  {/* ── 3 grupos de status ── */}
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                    {/* Grupo 1 — Aprovação */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: '130px' }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Aprovação</span>
+                      <select
+                        value={task.approvalStatus || ''}
+                        onChange={e => updateTask(task.id, 'approvalStatus', e.target.value)}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.3rem 0.6rem', borderRadius: '8px', border: ac ? `1.5px solid ${ac.border}` : '1px solid var(--border)', background: ac ? ac.bg : 'var(--bg-elevated)', color: ac ? ac.color : 'var(--text-secondary)', cursor: 'pointer' }}
+                      >
+                        <option value="">— Sem status —</option>
+                        {APPROVAL_STATUS_ORDER.map(k => (
+                          <option key={k} value={k}>{APPROVAL_STATUS_CONFIG[k].label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Grupo 2 — Formato */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: '120px' }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Formato</span>
+                      <select
+                        value={task.type}
+                        onChange={e => updateTask(task.id, 'type', e.target.value)}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.3rem 0.6rem', borderRadius: '8px', border: `1.5px solid ${tc.color}40`, background: `${tc.color}12`, color: tc.color, cursor: 'pointer' }}
+                      >
+                        {(Object.entries(PROD_TYPE_CONFIG) as [ProdType, { label: string; color: string }][]).map(([k, v]) => (
+                          <option key={k} value={k}>{v.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Grupo 3 — Produção */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: '130px' }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Produção</span>
+                      <select
+                        value={task.status}
+                        onChange={e => updateTask(task.id, 'status', e.target.value)}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, padding: '0.3rem 0.6rem', borderRadius: '8px', border: `1.5px solid ${sc.border}`, background: sc.bg, color: sc.color, cursor: 'pointer' }}
+                      >
+                        {PROD_STATUS_ORDER.map(k => (
+                          <option key={k} value={k}>{PROD_STATUS_CONFIG[k].label}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Pilar selector */}

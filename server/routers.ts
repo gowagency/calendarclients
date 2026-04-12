@@ -191,6 +191,7 @@ export const appRouter = router({
         canvaUrl: z.string().optional().nullable(),
         creativoUrl: z.string().optional().nullable(),
         pilar: z.string().optional().nullable(),
+        approvalStatus: z.string().optional().nullable(),
         createdAt: z.number(),
       }))
       .mutation(({ input }) => db.createProdTask(input)),
@@ -207,6 +208,7 @@ export const appRouter = router({
         canvaUrl: z.string().optional().nullable(),
         creativoUrl: z.string().optional().nullable(),
         pilar: z.string().optional().nullable(),
+        approvalStatus: z.string().optional().nullable(),
         archived: z.number().optional(),
       }))
       .mutation(({ input }) => {
