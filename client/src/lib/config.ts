@@ -118,11 +118,12 @@ const PILARES_ALINY = [
 
 // Junior Lopes — paleta sóbria, verde musgo e terrosos
 const PILARES_JUNIOR = [
-  { id: 'financas_pessoais',    label: 'Finanças Pessoais',    color: '#3D5C3A' }, // verde musgo profundo
-  { id: 'planejamento_fiscal',  label: 'Planejamento Fiscal',  color: '#5C7A5C' }, // verde musgo médio
-  { id: 'empreendedorismo',     label: 'Empreendedorismo',     color: '#7A7A4A' }, // oliva terroso
-  { id: 'educacao_financeira',  label: 'Educação Financeira',  color: '#7A6B5A' }, // pedra quente
-  { id: 'lifestyle',            label: 'Lifestyle',            color: '#5C4A3A' }, // terra escura
+  { id: 'gestao_empresarial',  label: 'Gestão Empresarial',  color: '#3D5C3A' }, // verde musgo profundo
+  { id: 'lideranca',           label: 'Liderança',           color: '#5C7A5C' }, // verde musgo médio
+  { id: 'consultoria',         label: 'Consultoria',         color: '#7A7A4A' }, // oliva terroso
+  { id: 'humanizacao',         label: 'Humanização',         color: '#7A6B5A' }, // pedra quente
+  { id: 'altus_contabilidade', label: 'Altus Contabilidade', color: '#4A5C4A' }, // musgo escuro
+  { id: 'enjoy_educacao',      label: 'Enjoy Educação',      color: '#5C4A3A' }, // terra escura
 ] as const;
 
 const PILARES_BY_CLIENT: Record<string, readonly { id: string; label: string; color: string }[]> = {
