@@ -136,6 +136,12 @@ export function getPilares(client: string): readonly { id: string; label: string
   return PILARES_BY_CLIENT[client] ?? PILARES_ALINY;
 }
 
+/** Per-client display config (name, pronouns) for dynamic labels */
+export const CLIENT_CONFIG: Record<string, { firstName: string; pronoun: string; preposition: string }> = {
+  alinyrayze:  { firstName: 'Aliny',  pronoun: 'dela', preposition: 'da'  },
+  juniorlopes: { firstName: 'Junior', pronoun: 'dele', preposition: 'do'  },
+};
+
 /** @deprecated use getPilares(client) instead */
 export const PILARES = PILARES_ALINY;
 

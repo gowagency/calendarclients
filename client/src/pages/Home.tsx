@@ -12,7 +12,7 @@ import type { Post, ClientSlug } from '../../../drizzle/schema';
 import PostSheet from '@/components/PostSheet';
 import {
   NETWORKS, ACTIVE_NETWORKS, NETWORK_CONFIG, STATUS_CONFIG, STATUS_ORDER,
-  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey, getFormatColor, PILARES, getPilares,
+  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey, getFormatColor, PILARES, getPilares, CLIENT_CONFIG,
 } from '@/lib/config';
 import { EditorialPage, PosicionamentoPage } from './EditorialPage';
 import RichTextEditor from '@/components/RichTextEditor';
@@ -604,6 +604,7 @@ function QuickBlock({ client }: { client: string }) {
   const [activeTab,   setActiveTab]   = useState<string>('todos');
 
   const clientPilares = getPilares(client);
+  const cc = CLIENT_CONFIG[client] ?? CLIENT_CONFIG.alinyrayze;
 
   // Migrate from localStorage on first load — localStorage only cleared after ALL tasks confirmed saved
   const tasks: ProdTask[] = (tasksQuery.data as ProdTask[]) || [];
@@ -977,7 +978,7 @@ function QuickBlock({ client }: { client: string }) {
                     })()}
                     {task.obsAliny && task.obsAliny.replace(/<[^>]*>/g, '').trim() && (
                       <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', fontWeight: 600, color: '#4E7052', background: 'rgba(107,138,110,0.12)', border: '1px solid rgba(107,138,110,0.30)', whiteSpace: 'nowrap' }}>
-                        ✎ Aliny
+                        ✎ {cc.firstName}
                       </span>
                     )}
                     {task.canvaUrl && (
@@ -1058,16 +1059,16 @@ function QuickBlock({ client }: { client: string }) {
                       background: 'rgba(107,138,110,0.09)',
                     }}>
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4E7052', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                        ✎ Aliny
+                        ✎ {cc.firstName}
                       </span>
-                      <span style={{ fontSize: '0.65rem', color: '#6B8A6E', fontStyle: 'italic' }}>— sugestões e observações dela</span>
+                      <span style={{ fontSize: '0.65rem', color: '#6B8A6E', fontStyle: 'italic' }}>— sugestões e observações {cc.pronoun}</span>
                     </div>
                     {/* Editor */}
                     <div style={{ padding: '0.1rem' }}>
                       <RichTextEditor
                         value={task.obsAliny || ''}
                         onChange={html => updateTask(task.id, 'obsAliny', html)}
-                        placeholder="Espaço exclusivo para anotações da Aliny..."
+                        placeholder={`Espaço exclusivo para anotações ${cc.preposition} ${cc.firstName}...`}
                         minHeight={60}
                       />
                     </div>

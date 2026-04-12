@@ -7,7 +7,7 @@ import {
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import type { Post, Comment, Attachment } from '@shared/types';
-import { NETWORK_CONFIG, STATUS_CONFIG, FORMAT_OPTIONS, getPilares } from '@/lib/config';
+import { NETWORK_CONFIG, STATUS_CONFIG, FORMAT_OPTIONS, getPilares, CLIENT_CONFIG } from '@/lib/config';
 import RichTextEditor from '@/components/RichTextEditor';
 
 interface PostSheetProps {
@@ -173,6 +173,7 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
   const obsAlinyRead = (editingPost as any).obsAlinyRead;
   const hasUnreadAliny = obsAliny.replace(/<[^>]*>/g, '').trim() || history.length > 0;
   const canvaLink = editingPost.canvaLink || '';
+  const cc = CLIENT_CONFIG[(post as any).client || 'alinyrayze'] ?? CLIENT_CONFIG.alinyrayze;
 
   return (
     <AnimatePresence>
@@ -210,7 +211,7 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                   <span className="label">{network?.label}</span>
                   <span style={{ fontSize: '0.7rem', fontWeight: 600, color: sc.color, background: sc.bg, padding: '0.15rem 0.5rem', borderRadius: '20px', border: `1px solid ${sc.color}30` }}>{sc.label}</span>
                   {hasUnreadAliny && !obsAlinyRead && (
-                    <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#4E7052', background: 'rgba(107,138,110,0.15)', border: '1px solid rgba(107,138,110,0.35)', padding: '0.1rem 0.45rem', borderRadius: '20px' }}>✎ Aliny</span>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#4E7052', background: 'rgba(107,138,110,0.15)', border: '1px solid rgba(107,138,110,0.35)', padding: '0.1rem 0.45rem', borderRadius: '20px' }}>✎ {cc.firstName}</span>
                   )}
                 </div>
                 <h2 style={{ fontFamily: 'DM Sans, system-ui', fontSize: '1.1rem', fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
@@ -372,7 +373,7 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.85rem', background: 'rgba(107,138,110,0.10)', borderBottom: '1px solid rgba(107,138,110,0.18)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#4E7052', letterSpacing: '0.05em', textTransform: 'uppercase' }}>✎ Observações Aliny</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#4E7052', letterSpacing: '0.05em', textTransform: 'uppercase' }}>✎ Observações {cc.firstName}</span>
                     <span style={{ fontSize: '0.64rem', color: '#6B8A6E', fontStyle: 'italic' }}>— sugestões e aprovações</span>
                   </div>
                   {hasUnreadAliny && !obsAlinyRead && (
@@ -387,7 +388,7 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
 
                 {/* RichTextEditor */}
                 <div style={{ padding: '0.25rem 0.25rem 0' }}>
-                  <RichTextEditor value={obsAliny} onChange={v => updateAny('obsAliny', v)} placeholder="Espaço para anotações da Aliny..." minHeight={72} />
+                  <RichTextEditor value={obsAliny} onChange={v => updateAny('obsAliny', v)} placeholder={`Espaço para anotações ${cc.preposition} ${cc.firstName}...`} minHeight={72} />
                 </div>
 
                 {/* Approval buttons */}
