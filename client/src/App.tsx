@@ -18,11 +18,21 @@ function getClientFromHostname(): ClientSlug | null {
   return null;
 }
 
+const CLIENT_TITLES: Record<string, string> = {
+  alinyrayze:  'Gow Calendar | Aliny Rayze',
+  juniorlopes: 'Gow Calendar | Junior Lopes',
+};
+
+function setTitle(client: string) {
+  document.title = CLIENT_TITLES[client] ?? 'Gow Calendar';
+}
+
 function Router() {
   const clientFromHost = getClientFromHostname();
 
   // Produção: subdomínio detectado → mostra direto na raiz
   if (clientFromHost) {
+    setTitle(clientFromHost);
     return (
       <Switch>
         <Route path="*" component={() => <Home client={clientFromHost} />} />
@@ -33,8 +43,8 @@ function Router() {
   // Dev local: usa rotas por path
   return (
     <Switch>
-      <Route path="/alinyrayze" component={() => <Home client="alinyrayze" />} />
-      <Route path="/juniorlopes" component={() => <Home client="juniorlopes" />} />
+      <Route path="/alinyrayze" component={() => { setTitle('alinyrayze'); return <Home client="alinyrayze" />; }} />
+      <Route path="/juniorlopes" component={() => { setTitle('juniorlopes'); return <Home client="juniorlopes" />; }} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
