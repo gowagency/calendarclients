@@ -7,7 +7,7 @@ import {
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import type { Post, Comment, Attachment } from '@shared/types';
-import { NETWORK_CONFIG, STATUS_CONFIG, FORMAT_OPTIONS, PILARES } from '@/lib/config';
+import { NETWORK_CONFIG, STATUS_CONFIG, FORMAT_OPTIONS, getPilares } from '@/lib/config';
 import RichTextEditor from '@/components/RichTextEditor';
 
 interface PostSheetProps {
@@ -303,11 +303,12 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                 <div>
                   <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Pilar de Conteúdo</span>
                   {(() => {
-                    const activePilar = PILARES.find(p => p.id === (editingPost as any).pilar);
+                    const postPilares = getPilares((post as any).client || 'alinyrayze');
+                    const activePilar = postPilares.find(p => p.id === (editingPost as any).pilar);
                     return (
                       <select value={(editingPost as any).pilar || ''} onChange={e => (updateField as any)('pilar', e.target.value || null)} style={{ width: '100%', fontSize: '0.85rem', fontWeight: activePilar ? 600 : 400, color: activePilar ? activePilar.color : 'var(--text-secondary)', background: activePilar ? `${activePilar.color}10` : 'var(--bg-elevated)', border: activePilar ? `1px solid ${activePilar.color}40` : '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: 'pointer', transition: 'all 0.15s' }}>
                         <option value="">— Nenhum pilar —</option>
-                        {PILARES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                        {postPilares.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                       </select>
                     );
                   })()}

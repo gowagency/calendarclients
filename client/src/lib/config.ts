@@ -105,10 +105,10 @@ export function getFormatColor(formato: string, socialNetwork?: string) {
   return FORMAT_COLOR[formato] ?? FORMAT_COLOR['_default'];
 }
 
-// ─── PILARES DE CONTEÚDO ───────────────────────────────────────────────────
+// ─── PILARES DE CONTEÚDO (por cliente) ────────────────────────────────────
 
-// Pilares — paleta Aliny Rayze: tons terrosos, sage, bege
-export const PILARES = [
+// Aliny Rayze — paleta terrosa/sage
+const PILARES_ALINY = [
   { id: 'estrutura',                 label: 'Estrutura',                  color: '#7B3A12' }, // chocolate
   { id: 'consciencia',               label: 'Consciência',                color: '#6B8A6E' }, // sage green
   { id: 'acolhimento_adulto',        label: 'Acolhimento Adulto',         color: '#A07848' }, // camel
@@ -116,7 +116,29 @@ export const PILARES = [
   { id: 'espiritualidade_implicita', label: 'Espiritualidade Implícita',  color: '#A4735E' }, // terracotta
 ] as const;
 
-export type PilarId = typeof PILARES[number]['id'];
+// Junior Lopes — paleta profissional/azul
+const PILARES_JUNIOR = [
+  { id: 'financas_pessoais',    label: 'Finanças Pessoais',    color: '#1565C0' }, // azul
+  { id: 'planejamento_fiscal',  label: 'Planejamento Fiscal',  color: '#2E7D32' }, // verde
+  { id: 'empreendedorismo',     label: 'Empreendedorismo',     color: '#E65100' }, // laranja
+  { id: 'educacao_financeira',  label: 'Educação Financeira',  color: '#6A1B9A' }, // roxo
+  { id: 'lifestyle',            label: 'Lifestyle',            color: '#37474F' }, // cinza-azul
+] as const;
+
+const PILARES_BY_CLIENT: Record<string, readonly { id: string; label: string; color: string }[]> = {
+  alinyrayze:  PILARES_ALINY,
+  juniorlopes: PILARES_JUNIOR,
+};
+
+/** Returns the pilares for a given client slug (falls back to Aliny's if unknown) */
+export function getPilares(client: string): readonly { id: string; label: string; color: string }[] {
+  return PILARES_BY_CLIENT[client] ?? PILARES_ALINY;
+}
+
+/** @deprecated use getPilares(client) instead */
+export const PILARES = PILARES_ALINY;
+
+export type PilarId = typeof PILARES_ALINY[number]['id'];
 
 // ─── CALENDAR ──────────────────────────────────────────────────────────────
 

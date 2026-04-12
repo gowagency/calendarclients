@@ -12,7 +12,7 @@ import type { Post, ClientSlug } from '../../../drizzle/schema';
 import PostSheet from '@/components/PostSheet';
 import {
   NETWORKS, ACTIVE_NETWORKS, NETWORK_CONFIG, STATUS_CONFIG, STATUS_ORDER,
-  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey, getFormatColor, PILARES,
+  FORMAT_OPTIONS, DIAS_SEMANA, FERIADOS_BR, formatDateKey, getFormatColor, PILARES, getPilares,
 } from '@/lib/config';
 import { EditorialPage, PosicionamentoPage } from './EditorialPage';
 import RichTextEditor from '@/components/RichTextEditor';
@@ -252,7 +252,7 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
   const sc = STATUS_CONFIG[post.status];
   const network = NETWORK_CONFIG[post.socialNetwork];
   const fc = getFormatColor(post.formato, post.socialNetwork);
-  const pilar = PILARES.find(p => p.id === (post as any).pilar);
+  const pilar = getPilares((post as any).client || 'alinyrayze').find(p => p.id === (post as any).pilar);
 
   return (
     <motion.button
@@ -473,7 +473,7 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
                     {dayPosts.map(p => {
                       const fc = getFormatColor(p.formato, p.socialNetwork);
                       const sc = STATUS_CONFIG[p.status];
-                      const pilarTag = PILARES.find(pl => pl.id === (p as any).pilar);
+                      const pilarTag = getPilares((p as any).client || 'alinyrayze').find(pl => pl.id === (p as any).pilar);
                       return (
                         <button
                           key={p.id}
@@ -603,6 +603,8 @@ function QuickBlock({ client }: { client: string }) {
   const [filterType,  setFilterType]  = useState('');
   const [activeTab,   setActiveTab]   = useState<string>('todos');
 
+  const clientPilares = getPilares(client);
+
   // Migrate from localStorage on first load — localStorage only cleared after ALL tasks confirmed saved
   const tasks: ProdTask[] = (tasksQuery.data as ProdTask[]) || [];
   useEffect(() => {
@@ -707,7 +709,7 @@ function QuickBlock({ client }: { client: string }) {
 
       {/* ── FILTROS (dropdowns nativos — PC e mobile) ── */}
       {tasks.length > 0 && (() => {
-        const pilarAtivo  = PILARES.find(p => p.id === filterPilar);
+        const pilarAtivo  = clientPilares.find(p => p.id === filterPilar);
         const algumFiltro = filterPilar;
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
@@ -734,7 +736,7 @@ function QuickBlock({ client }: { client: string }) {
               }}
             >
               <option value="">Pilar: todos</option>
-              {PILARES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+              {clientPilares.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
 
             {/* Limpar filtros */}
@@ -800,7 +802,7 @@ function QuickBlock({ client }: { client: string }) {
           {(() => {
             const sv  = PROD_STATUS_CONFIG[newTask.status];
             const tv  = PROD_TYPE_CONFIG[newTask.type];
-            const pv  = PILARES.find(p => p.id === newTask.pilar);
+            const pv  = clientPilares.find(p => p.id === newTask.pilar);
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -837,7 +839,7 @@ function QuickBlock({ client }: { client: string }) {
                     onClick={() => setNewTask(f => ({ ...f, pilar: '' }))}
                     style={{ fontSize: '0.65rem', padding: '0.1rem 0.5rem', borderRadius: '100px', border: !newTask.pilar ? '1.5px solid var(--text-secondary)' : '1px solid var(--border)', background: !newTask.pilar ? 'var(--bg-secondary)' : 'transparent', color: !newTask.pilar ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', fontWeight: !newTask.pilar ? 700 : 400 }}
                   >Nenhum</button>
-                  {PILARES.map(p => (
+                  {clientPilares.map(p => (
                     <button
                       key={p.id} type="button"
                       onClick={() => setNewTask(f => ({ ...f, pilar: f.pilar === p.id ? '' : p.id }))}
@@ -966,7 +968,7 @@ function QuickBlock({ client }: { client: string }) {
                     </select>
                     {/* Pilar tag */}
                     {(() => {
-                      const pilarObj = PILARES.find(p => p.id === task.pilar);
+                      const pilarObj = clientPilares.find(p => p.id === task.pilar);
                       return pilarObj ? (
                         <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', fontWeight: 600, color: pilarObj.color, background: `${pilarObj.color}18`, border: `1px solid ${pilarObj.color}35`, whiteSpace: 'nowrap' }}>
                           {pilarObj.label}
@@ -1024,7 +1026,7 @@ function QuickBlock({ client }: { client: string }) {
                       onClick={() => updateTask(task.id, 'pilar', '')}
                       style={{ fontSize: '0.65rem', padding: '0.1rem 0.5rem', borderRadius: '100px', border: !task.pilar ? '1.5px solid var(--text-secondary)' : '1px solid var(--border)', background: !task.pilar ? 'var(--bg-secondary)' : 'transparent', color: !task.pilar ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', fontWeight: !task.pilar ? 700 : 400 }}
                     >Nenhum</button>
-                    {PILARES.map(p => (
+                    {clientPilares.map(p => (
                       <button
                         key={p.id} type="button"
                         onClick={() => updateTask(task.id, 'pilar', task.pilar === p.id ? '' : p.id)}
