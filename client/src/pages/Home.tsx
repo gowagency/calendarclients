@@ -666,7 +666,7 @@ function QuickBlock({ client }: { client: string }) {
   const updateTask = (id: string, field: string, value: string) => {
     const extra: Record<string, unknown> = {};
     if (field === 'approvalStatus' && value === 'reprovado') extra.archived = 1;
-    if (field === 'status' && value === 'postado') extra.archived = 1;
+    if (field === 'status' && (value === 'postado' || value === 'finalizado')) extra.archived = 1;
     updateTaskM.mutate({ id, [field]: value || null, ...extra });
   };
 
