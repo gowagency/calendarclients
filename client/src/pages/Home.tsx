@@ -544,7 +544,7 @@ function CalendarView({ posts, onSelectPost, onNewPost, updatePost, search, onSe
 
 // ── Produção: andamento do trabalho interno
 type ProdStatus = 'nao_iniciado' | 'em_andamento' | 'gravado' | 'finalizado' | 'postado';
-type ProdType   = 'reels' | 'narracao' | 'carrossel' | 'spotify' | 'a_definir' | 'post_estatico';
+type ProdType   = 'reels' | 'narracao' | 'carrossel' | 'spotify' | 'a_definir' | 'post_estatico' | 'story';
 
 type ProdTask = {
   id: string;
@@ -591,6 +591,7 @@ const PROD_TYPE_CONFIG: Record<ProdType, { label: string; color: string }> = {
   a_definir:     { label: 'A Definir',     color: '#A8A09A' },
   post_estatico: { label: 'Post Estático', color: '#8B8177' },
   carrossel:     { label: 'Carrossel',     color: '#A07848' },
+  story:         { label: 'Story',         color: '#7A5C8A' },
   reels:         { label: 'Reels',         color: '#7B3A12' },
   narracao:      { label: 'Narração',      color: '#8B8177' },
   spotify:       { label: 'Spotify',       color: '#4E7052' },
@@ -789,6 +790,7 @@ function QuickBlock({ client }: { client: string }) {
           { id: 'a_definir', label: 'A Definir' },
           { id: 'post_estatico', label: 'Post Estático' },
           { id: 'carrossel', label: 'Carrossel' },
+          { id: 'story', label: 'Story', color: '#7A5C8A' },
           { id: 'reels', label: 'Reels' },
           { id: 'narracao', label: 'Narração' },
           { id: 'spotify', label: 'Spotify', color: '#4E7052' },
