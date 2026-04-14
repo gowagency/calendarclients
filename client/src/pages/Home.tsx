@@ -659,7 +659,7 @@ function QuickBlock({ client }: { client: string }) {
   const addTask = () => {
     if (!newTask.title.trim()) return;
     const id = Date.now().toString();
-    createTask.mutate({ client: client as any, ...newTask, id, createdAt: Date.now(), dueDate: newTask.dueDate || null, obs: newTask.obs || null, obsAliny: null, canvaUrl: newTask.canvaUrl || null, creativoUrl: newTask.creativoUrl || null, pilar: newTask.pilar || null });
+    createTask.mutate({ client: client as any, ...newTask, id, createdAt: Date.now(), dueDate: newTask.dueDate || null, obs: newTask.obs || null, obsAliny: newTask.obsAliny || null, canvaUrl: newTask.canvaUrl || null, creativoUrl: newTask.creativoUrl || null, pilar: newTask.pilar || null });
     setNewTask({ ...EMPTY_TASK });
     setAdding(false);
   };
@@ -904,6 +904,22 @@ function QuickBlock({ client }: { client: string }) {
             placeholder="Observação (opcional)..."
             minHeight={72}
           />
+
+          {/* ── Observações do cliente ── */}
+          <div style={{ borderRadius: '10px', border: '1.5px solid rgba(107,138,110,0.35)', background: 'rgba(107,138,110,0.06)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.75rem', background: 'rgba(107,138,110,0.09)' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4E7052', letterSpacing: '0.06em', textTransform: 'uppercase' }}>✎ {cc.firstName}</span>
+              <span style={{ fontSize: '0.65rem', color: '#6B8A6E', fontStyle: 'italic' }}>— sugestões e observações {cc.pronoun}</span>
+            </div>
+            <div style={{ padding: '0.1rem' }}>
+              <RichTextEditor
+                value={newTask.obsAliny}
+                onChange={html => setNewTask(f => ({ ...f, obsAliny: html }))}
+                placeholder={`Espaço exclusivo para anotações ${cc.preposition} ${cc.firstName}...`}
+                minHeight={60}
+              />
+            </div>
+          </div>
           {/* Canva link */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Link Canva</span>
