@@ -123,6 +123,32 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
       `);
     }
 
+    // Ensure "Dia das Mães" post exists for Aliny on 08/05/2026 (one-shot insert)
+    try {
+      const may08 = new Date("2026-05-08T12:00:00-03:00").getTime();
+      const existingMaes = await db
+        .select({ id: posts.id })
+        .from(posts)
+        .where(and(eq(posts.client, "alinyrayze"), eq(posts.titulo, "Dia das Mães")))
+        .limit(1);
+      if (existingMaes.length === 0) {
+        await db.insert(posts).values({
+          client: "alinyrayze",
+          socialNetwork: "instagram",
+          formato: "Reels",
+          status: "em_aprovacao",
+          scheduledDate: may08,
+          sortOrder: 210,
+          titulo: "Dia das Mães",
+          conteudo: null,
+          legenda: null,
+        });
+        console.log("[DB] Inserted missing 'Dia das Mães' post for Aliny on 08/05/2026");
+      }
+    } catch (e) {
+      console.warn("[DB] Dia das Mães insert skipped:", (e as Error).message?.slice(0, 80));
+    }
+
     console.log("[DB] prod_tasks table ready + approval status migrated");
   } catch (e) {
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));
@@ -250,7 +276,14 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
         },
         {
           socialNetwork: "instagram", formato: "Reels", status: "em_aprovacao",
-          scheduledDate: noon("2026-05-11"), sortOrder: 210,
+          scheduledDate: noon("2026-05-08"), sortOrder: 210,
+          titulo: "Dia das Mães",
+          conteudo: null,
+          legenda: null,
+        },
+        {
+          socialNetwork: "instagram", formato: "Reels", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-11"), sortOrder: 211,
           titulo: "O amor não é um sentimento, é um comportamento.",
           conteudo: "Reels curto com a frase (Take Thiago)",
           legenda: null,
