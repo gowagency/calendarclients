@@ -156,6 +156,100 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
   } catch (e) {
     console.warn("[DB] March 2026 seed failed:", (e as Error).message?.slice(0, 120));
   }
+
+  // Seed Aliny Rayze May 2026 — pauta semanal
+  try {
+    const noon = (d: string) => new Date(d + "T12:00:00-03:00").getTime();
+    const mayStart = new Date("2026-05-01T00:00:00Z").getTime();
+    const mayEnd   = new Date("2026-05-31T23:59:59Z").getTime();
+
+    const existing = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .where(and(eq(posts.client, "alinyrayze"), gte(posts.scheduledDate, mayStart), lte(posts.scheduledDate, mayEnd)))
+      .limit(1);
+
+    if (existing.length === 0) {
+      const may: InsertPost[] = [
+        {
+          socialNetwork: "instagram", formato: "Carrossel", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-07"), sortOrder: 201,
+          titulo: "Exigir o respeito dele, é uma função da falta de respeito próprio.",
+          canvaLink: "https://drive.google.com/drive/folders/1Fj31jWrZqL3Qusk1ygOqXL89mC1nSQTR?usp=drive_link",
+          conteudo: null, legenda: null,
+        },
+        {
+          socialNetwork: "instagram", formato: "Carrossel", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-07"), sortOrder: 202,
+          titulo: "Querer ser uma versão melhor de si mesma não pode ficar só no discurso interno.",
+          canvaLink: "https://drive.google.com/drive/u/1/folders/1IiauBnsm5gGFzf0Tg9zHFnt5wNUZzomw",
+          conteudo: null, legenda: null,
+        },
+        {
+          socialNetwork: "instagram", formato: "Carrossel", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-07"), sortOrder: 203,
+          titulo: "Por muito tempo, isso aqui me incomodava…",
+          conteudo: "Slide 1: (Foto dando banho nas crianças com detergente)\nSlide 2: (Foto dando janta as crianças só de arroz gelado)\nSlide 3: (Foto levando na rua só com uma fralda na mão, e contando com a sorte)\nSlide 4: (Foto secando a criança do banho com camisa suada dele)\nSlide Final: Esse tipo de coisa, hoje me tranquiliza. Leia a legenda.\n\n1. Enviar as fotos para produzir os slides",
+          legenda: null,
+        },
+        {
+          socialNetwork: "instagram", formato: "Reels", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-07"), sortOrder: 204,
+          titulo: "Quando eu te pergunto como você está, é porque eu tenho tempo pra ouvir a resposta inteira.",
+          conteudo: "Frase Referência: \"Só pra constar... Quando eu pergunto como você está, eu sempre posso escutar a versão longa.\"\n\n1. Aprova ou ajustar a frase\n2. Definir a foto ou o vídeo (utilizar existente ou gravar um curto até 10 segundos)",
+          legenda: null,
+        },
+        {
+          socialNetwork: "instagram", formato: "Reels", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-07"), sortOrder: 205,
+          titulo: "A mulher que pensa em terminar no primeiro problema é a criança que aprendeu que sair era o único jeito de não sentir...",
+          conteudo: "Frase Referência: \"Para as crianças que cresceram acreditando que ir embora de casa resolveria todos os problemas...\"\n\n1. Aprovar ou ajustar frase\n2. Definir a foto ou o vídeo (utilizar existente ou gravar um curto até 10 segundos)",
+          legenda: null,
+        },
+        {
+          socialNetwork: "instagram", formato: "Reels", status: "postado",
+          scheduledDate: noon("2026-05-07"), sortOrder: 206,
+          titulo: "Qual a finalidade do ser humano?",
+          conteudo: null,
+          legenda: "Amar. Só nós humanos conseguimos amar em totalidade. Os animais amam os da mesma espécie.\n\nÉ por isso que quando você não consegue amar através dos seus atos e comportamentos, algo em você se incomoda, estranha, ou se questiona. Essa voz da consciência está te lembrando que você não está cumprindo a sua finalidade.\n\nVocê nasceu pra amar e ser amado. E sem perceber, tudo em você busca isso, as vezes de forma madura, as vezes de forma incoerente.\n\nMas no fim, é só uma busca por cumprir o que você foi feito pra fazer.",
+        },
+        {
+          socialNetwork: "instagram", formato: "Reels", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-07"), sortOrder: 207,
+          titulo: "Você esta gostando de quem você está se tornando?",
+          conteudo: "Reels curto com a frase (Take Thiago)",
+          legenda: null,
+        },
+        {
+          socialNetwork: "instagram", formato: "Reels", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-08"), sortOrder: 208,
+          titulo: "É preciso muita coragem pra ser leve.",
+          conteudo: "Reels curto com a frase (Take Thiago)",
+          legenda: null,
+        },
+        {
+          socialNetwork: "instagram", formato: "Carrossel", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-09"), sortOrder: 209,
+          titulo: "Palestra para Mulheres",
+          conteudo: "Carrossel de fotos, Captação para Reels com trilha sonora ou narração",
+          legenda: null,
+        },
+        {
+          socialNetwork: "instagram", formato: "Reels", status: "em_aprovacao",
+          scheduledDate: noon("2026-05-11"), sortOrder: 210,
+          titulo: "O amor não é um sentimento, é um comportamento.",
+          conteudo: "Reels curto com a frase (Take Thiago)",
+          legenda: null,
+        },
+      ];
+      for (const p of may) {
+        await db.insert(posts).values({ ...p, client: "alinyrayze" });
+      }
+      console.log("[DB] Seeded Aliny Rayze May 2026 — 10 posts");
+    }
+  } catch (e) {
+    console.warn("[DB] May 2026 seed failed:", (e as Error).message?.slice(0, 120));
+  }
 }
 
 export async function getDb() {

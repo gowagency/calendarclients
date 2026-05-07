@@ -1,13 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Save, Trash2, MessageSquare, Paperclip, ExternalLink,
-  Upload, Calendar, Send as SendIcon, ChevronDown, ChevronUp,
+  X, Save, Trash2, ExternalLink, Upload, Calendar, ChevronDown, ChevronUp, Link2, Plus, Share2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
-import type { Post, Comment, Attachment } from '@shared/types';
-import { NETWORK_CONFIG, STATUS_CONFIG, FORMAT_OPTIONS, getPilares, CLIENT_CONFIG } from '@/lib/config';
+import type { Post, Attachment } from '@shared/types';
+import { NETWORK_CONFIG, STATUS_CONFIG, FORMAT_OPTIONS, CLIENT_CONFIG } from '@/lib/config';
 import RichTextEditor from '@/components/RichTextEditor';
 
 interface PostSheetProps {
@@ -23,30 +22,47 @@ type HistoryEvent = {
   note?: string;
 };
 
-const APPROVAL_ACTIONS = [
-  { type: 'copy_ok',   label: 'Copy aprovado',        emoji: '✓', color: '#22c55e', bg: 'rgba(34,197,94,0.10)',   border: 'rgba(34,197,94,0.30)'   },
-  { type: 'arte_ok',   label: 'Arte aprovada',         emoji: '✓', color: '#22c55e', bg: 'rgba(34,197,94,0.10)',   border: 'rgba(34,197,94,0.30)'   },
-  { type: 'ajuste_ok', label: 'Ajuste aprovado',       emoji: '✓', color: '#6B8A6E', bg: 'rgba(107,138,110,0.12)', border: 'rgba(107,138,110,0.30)' },
-  { type: 'postar',    label: 'Autorizado p/ postagem',emoji: '🚀', color: '#5c7aff', bg: 'rgba(92,122,255,0.10)', border: 'rgba(92,122,255,0.30)'  },
-] as const;
-
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+// Parse links: stored as JSON array OR single URL (backward compat)
+function parseLinks(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith('[')) {
+    try {
+      const arr = JSON.parse(trimmed);
+      if (Array.isArray(arr)) return arr.filter(x => typeof x === 'string' && x.trim()).map(s => s.trim());
+    } catch { /* fall through */ }
+  }
+  return [trimmed];
+}
+
+function serializeLinks(arr: string[]): string | null {
+  const clean = arr.map(s => s.trim()).filter(Boolean);
+  if (clean.length === 0) return null;
+  if (clean.length === 1) return clean[0];
+  return JSON.stringify(clean);
 }
 
 export default function PostSheet({ post, onClose }: PostSheetProps) {
   const utils = trpc.useUtils();
   const [editingPost, setEditingPost] = useState<Post | null>(null);
-  const [commentAuthor] = useState('Gow Agency');
-  const [commentText, setCommentText] = useState('');
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [pedirAjuste, setPedirAjuste] = useState(false);
   const [ajusteNote, setAjusteNote] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [links, setLinks] = useState<string[]>([]);
 
   useEffect(() => {
-    if (post) { setEditingPost({ ...post }); setCarouselIdx(0); }
+    if (post) {
+      setEditingPost({ ...post });
+      setCarouselIdx(0);
+      setLinks(parseLinks(post.canvaLink));
+    }
   }, [post]);
 
   const updatePost = trpc.posts.update.useMutation({
@@ -55,25 +71,9 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
   const deletePost = trpc.posts.delete.useMutation({
     onSuccess: () => { utils.posts.invalidate(); toast.success('Post removido'); onClose(); },
   });
-  const commentsQuery = trpc.comments.byPost.useQuery(
-    { postId: post?.id ?? 0 }, { enabled: !!post }
-  );
-  const createComment = trpc.comments.create.useMutation({
-    onSuccess: () => {
-      utils.comments.byPost.invalidate({ postId: post?.id ?? 0 });
-      toast.success('Comentário adicionado');
-      setCommentText('');
-    },
-  });
   const attachmentsQuery = trpc.attachments.byPost.useQuery(
     { postId: post?.id ?? 0 }, { enabled: !!post }
   );
-  const uploadAttachment = trpc.attachments.upload.useMutation({
-    onSuccess: () => { utils.attachments.byPost.invalidate({ postId: post?.id ?? 0 }); toast.success('Arquivo anexado'); },
-  });
-  const deleteAttachment = trpc.attachments.delete.useMutation({
-    onSuccess: () => utils.attachments.byPost.invalidate({ postId: post?.id ?? 0 }),
-  });
   const uploadCover = trpc.posts.uploadCover.useMutation({
     onSuccess: (data) => {
       utils.posts.invalidate();
@@ -93,23 +93,13 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
     updatePost.mutate({
       id,
       ...rest,
+      canvaLink: serializeLinks(links),
       ...(sortOrder !== null ? { sortOrder } : {}),
-      ...(pilar !== undefined ? { pilar } : {}),
       ...(obsAliny !== undefined ? { obsAliny: obsAliny || null } : {}),
       ...(obsAlinyRead !== undefined ? { obsAlinyRead } : {}),
       ...(approvalHistory !== undefined ? { approvalHistory: approvalHistory || null } : {}),
     });
-  }, [editingPost, updatePost]);
-
-  const handleFileUpload = useCallback((file: File) => {
-    if (!post) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      uploadAttachment.mutate({ postId: post.id, fileName: file.name, fileData: base64, mimeType: file.type });
-    };
-    reader.readAsDataURL(file);
-  }, [post, uploadAttachment]);
+  }, [editingPost, updatePost, links]);
 
   const handleCoverUpload = useCallback((file: File) => {
     if (!post) return;
@@ -121,11 +111,6 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
     reader.readAsDataURL(file);
   }, [post, uploadCover]);
 
-  const handleAddComment = useCallback(() => {
-    if (!post || !commentText.trim()) return;
-    createComment.mutate({ postId: post.id, authorName: commentAuthor, content: commentText.trim() });
-  }, [post, commentAuthor, commentText, createComment]);
-
   const updateField = <K extends keyof Post>(field: K, value: Post[K]) => {
     setEditingPost(prev => prev ? { ...prev, [field]: value } : null);
   };
@@ -133,14 +118,14 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
     setEditingPost(prev => prev ? { ...prev, [field]: value } : null);
   };
 
-  const handleApprovalAction = (action: typeof APPROVAL_ACTIONS[number]) => {
+  const handleApprovar = () => {
     if (!post || !editingPost) return;
     const hist = getHistory();
-    const newEvent: HistoryEvent = { type: action.type, label: action.label, color: action.color, timestamp: Date.now() };
+    const newEvent: HistoryEvent = { type: 'aprovado', label: 'Aprovado', color: '#22c55e', timestamp: Date.now() };
     const newHist = JSON.stringify([...hist, newEvent]);
-    updatePost.mutate({ id: post.id, approvalHistory: newHist, obsAlinyRead: 0 });
-    setEditingPost(prev => prev ? { ...prev, approvalHistory: newHist, obsAlinyRead: 0 } as any : null);
-    toast.success(action.label + ' registrado');
+    updatePost.mutate({ id: post.id, approvalHistory: newHist, status: 'aprovado', obsAlinyRead: 0 });
+    setEditingPost(prev => prev ? { ...prev, approvalHistory: newHist, status: 'aprovado', obsAlinyRead: 0 } as any : null);
+    toast.success('Aprovado');
     setShowHistory(true);
   };
 
@@ -164,6 +149,20 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
     toast.success('Marcado como lido');
   };
 
+  const handleShareLink = () => {
+    if (!post) return;
+    const url = `${window.location.origin}${window.location.pathname}?post=${post.id}`;
+    navigator.clipboard.writeText(url).then(
+      () => toast.success('Link copiado'),
+      () => toast.error('Falha ao copiar link')
+    );
+  };
+
+  // ── Links handlers ──
+  const addLink = () => setLinks(arr => [...arr, '']);
+  const updateLinkAt = (i: number, value: string) => setLinks(arr => arr.map((l, idx) => idx === i ? value : l));
+  const removeLinkAt = (i: number) => setLinks(arr => arr.filter((_, idx) => idx !== i));
+
   if (!post || !editingPost) return null;
 
   const network = NETWORK_CONFIG[post.socialNetwork];
@@ -172,7 +171,6 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
   const obsAliny = (editingPost as any).obsAliny || '';
   const obsAlinyRead = (editingPost as any).obsAlinyRead;
   const hasUnreadAliny = obsAliny.replace(/<[^>]*>/g, '').trim() || history.length > 0;
-  const canvaLink = editingPost.canvaLink || '';
   const cc = CLIENT_CONFIG[(post as any).client || 'alinyrayze'] ?? CLIENT_CONFIG.alinyrayze;
 
   return (
@@ -218,15 +216,20 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                   {post.titulo}
                 </h2>
               </div>
-              <button onClick={onClose} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', flexShrink: 0, color: 'var(--text-secondary)', display: 'flex' }}>
-                <X size={16} />
-              </button>
+              <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                <button onClick={handleShareLink} title="Copiar link único deste post" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}>
+                  <Share2 size={16} />
+                </button>
+                <button onClick={onClose} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}>
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             {/* Scrollable content */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem' }}>
 
-              {/* ── Cover image (all formats) ── */}
+              {/* ── Cover image ── */}
               {(() => {
                 const imageAtts = ((attachmentsQuery.data as Attachment[] | undefined) || []).filter(a => a.mimeType?.startsWith('image/'));
                 const isCarousel = editingPost.formato === 'Carrossel';
@@ -244,11 +247,7 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                             <button onClick={e => { e.stopPropagation(); setCarouselIdx(i => Math.min(imageAtts.length - 1, i + 1)); }} disabled={safeIdx === imageAtts.length - 1} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: safeIdx === imageAtts.length - 1 ? 'not-allowed' : 'pointer', color: '#fff', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: safeIdx === imageAtts.length - 1 ? 0.35 : 1 }}>›</button>
                           </>
                         )}
-                        <div style={{ position: 'absolute', bottom: 8, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '5px' }}>
-                          {imageAtts.map((_, i) => <button key={i} onClick={e => { e.stopPropagation(); setCarouselIdx(i); }} style={{ width: i === safeIdx ? 18 : 6, height: 6, borderRadius: 3, background: i === safeIdx ? '#fff' : 'rgba(255,255,255,0.5)', border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.2s' }} />)}
-                        </div>
                       </div>
-                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '0.4rem', textAlign: 'center' }}>{safeIdx + 1} / {imageAtts.length} · {current.fileName} · <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setLightbox(current.fileUrl)}>ver completa</span></p>
                     </div>
                   );
                 }
@@ -257,32 +256,37 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                   return (
                     <div style={{ marginBottom: '0.75rem', cursor: 'zoom-in' }} onClick={() => setLightbox(editingPost.coverImageUrl!)}>
                       <img src={editingPost.coverImageUrl} alt={editingPost.titulo} style={{ width: '100%', borderRadius: '10px', objectFit: 'cover', maxHeight: '220px', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', textAlign: 'center', marginTop: '0.3rem', cursor: 'pointer' }}>clique para ver completa</p>
                     </div>
                   );
                 }
                 return null;
               })()}
 
-              {/* Upload cover — all formats */}
+              {/* Upload cover */}
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem', cursor: uploadCover.isPending ? 'wait' : 'pointer', color: uploadCover.isPending ? 'var(--text-tertiary)' : 'var(--text-secondary)', fontSize: '0.78rem', opacity: uploadCover.isPending ? 0.6 : 1 }}>
                 <Upload size={13} />
                 {uploadCover.isPending ? 'Enviando...' : editingPost.coverImageUrl ? 'Trocar capa' : 'Adicionar capa'}
                 <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadCover.isPending} onChange={e => e.target.files?.[0] && handleCoverUpload(e.target.files[0])} />
               </label>
 
-              {/* Fields */}
+              {/* Fields — order: Title, Format, Date, Status, Copy, Legenda, Links */}
               <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
 
-                {/* Status */}
+                {/* 1. Título */}
                 <div>
-                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Status</span>
-                  <select value={editingPost.status} onChange={e => updateField('status', e.target.value as Post['status'])} style={{ width: '100%', fontSize: '0.85rem', fontWeight: 600, color: sc.color, background: sc.bg, border: `1px solid ${sc.color}30`, borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: 'pointer' }}>
-                    {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Título</span>
+                  <input type="text" value={editingPost.titulo} onChange={e => updateField('titulo', e.target.value)} style={{ width: '100%', fontSize: '0.85rem' }} />
+                </div>
+
+                {/* 2. Formato */}
+                <div>
+                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Formato</span>
+                  <select value={editingPost.formato} onChange={e => updateField('formato', e.target.value)} style={{ width: '100%', fontSize: '0.85rem' }}>
+                    {(FORMAT_OPTIONS[post.socialNetwork] || ['Post']).map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </div>
 
-                {/* Scheduled date */}
+                {/* 3. Data agendada */}
                 <div>
                   <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Data agendada</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -292,39 +296,12 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                   </div>
                 </div>
 
-                {/* Formato */}
+                {/* Status */}
                 <div>
-                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Formato</span>
-                  <select value={editingPost.formato} onChange={e => updateField('formato', e.target.value)} style={{ width: '100%', fontSize: '0.85rem' }}>
-                    {(FORMAT_OPTIONS[post.socialNetwork] || ['Post']).map(f => <option key={f} value={f}>{f}</option>)}
+                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Status</span>
+                  <select value={editingPost.status} onChange={e => updateField('status', e.target.value as Post['status'])} style={{ width: '100%', fontSize: '0.85rem', fontWeight: 600, color: sc.color, background: sc.bg, border: `1px solid ${sc.color}30`, borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: 'pointer' }}>
+                    {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
-                </div>
-
-                {/* Pilar */}
-                <div>
-                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Pilar de Conteúdo</span>
-                  {(() => {
-                    const postPilares = getPilares((post as any).client || 'alinyrayze');
-                    const activePilar = postPilares.find(p => p.id === (editingPost as any).pilar);
-                    return (
-                      <select value={(editingPost as any).pilar || ''} onChange={e => (updateField as any)('pilar', e.target.value || null)} style={{ width: '100%', fontSize: '0.85rem', fontWeight: activePilar ? 600 : 400, color: activePilar ? activePilar.color : 'var(--text-secondary)', background: activePilar ? `${activePilar.color}10` : 'var(--bg-elevated)', border: activePilar ? `1px solid ${activePilar.color}40` : '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: 'pointer', transition: 'all 0.15s' }}>
-                        <option value="">— Nenhum pilar —</option>
-                        {postPilares.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                      </select>
-                    );
-                  })()}
-                </div>
-
-                {/* Responsavel */}
-                <div>
-                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Responsável</span>
-                  <input type="text" placeholder="Nome do responsável" value={editingPost.responsavel || ''} onChange={e => updateField('responsavel', e.target.value)} style={{ width: '100%', fontSize: '0.85rem' }} />
-                </div>
-
-                {/* Título */}
-                <div>
-                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Título</span>
-                  <input type="text" value={editingPost.titulo} onChange={e => updateField('titulo', e.target.value)} style={{ width: '100%', fontSize: '0.85rem' }} />
                 </div>
 
                 {/* Copy */}
@@ -339,16 +316,40 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                   <RichTextEditor value={editingPost.legenda || ''} onChange={v => updateField('legenda', v)} placeholder="Escreva a legenda do post..." minHeight={120} />
                 </div>
 
-                {/* Link (renamed from Canva) */}
+                {/* Links — múltiplos */}
                 <div>
-                  <span className="label" style={{ display: 'block', marginBottom: '0.35rem' }}>Link</span>
-                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <input type="url" placeholder="https://..." value={canvaLink} onChange={e => updateField('canvaLink', e.target.value)} style={{ flex: 1, fontSize: '0.82rem' }} />
-                    {canvaLink && (
-                      <a href={canvaLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: '#5c7aff', fontWeight: 600, textDecoration: 'none', padding: '0.3rem 0.65rem', border: '1px solid rgba(92,122,255,0.3)', borderRadius: '7px', background: 'rgba(92,122,255,0.07)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                        <ExternalLink size={11} /> Abrir
-                      </a>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <span className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Link2 size={11} /> Links
+                      {links.length > 0 && <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)' }}>({links.length})</span>}
+                    </span>
+                    <button onClick={addLink} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '7px', padding: '0.25rem 0.55rem', cursor: 'pointer', fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      <Plus size={11} /> Adicionar link
+                    </button>
+                  </div>
+                  {links.length === 0 && (
+                    <p style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '0.5rem 0' }}>Nenhum link. Clique em "Adicionar link".</p>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    {links.map((link, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <input
+                          type="url"
+                          placeholder="https://..."
+                          value={link}
+                          onChange={e => updateLinkAt(i, e.target.value)}
+                          style={{ flex: 1, fontSize: '0.82rem' }}
+                        />
+                        {link.trim() && (
+                          <a href={link} target="_blank" rel="noopener noreferrer" title="Abrir link" style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.75rem', color: '#5c7aff', padding: '0.3rem 0.5rem', border: '1px solid rgba(92,122,255,0.3)', borderRadius: '7px', background: 'rgba(92,122,255,0.07)', flexShrink: 0 }}>
+                            <ExternalLink size={11} />
+                          </a>
+                        )}
+                        <button onClick={() => removeLinkAt(i)} title="Remover" style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '7px', padding: '0.3rem', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', flexShrink: 0 }}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -368,13 +369,11 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                 )}
               </section>
 
-              {/* ── Observações Aliny ── */}
+              {/* ── Observações Aliny — simplificado ── */}
               <section style={{ marginTop: '1.25rem', borderRadius: '12px', border: '1.5px solid rgba(107,138,110,0.35)', background: 'rgba(107,138,110,0.04)', overflow: 'hidden' }}>
-                {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.85rem', background: 'rgba(107,138,110,0.10)', borderBottom: '1px solid rgba(107,138,110,0.18)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#4E7052', letterSpacing: '0.05em', textTransform: 'uppercase' }}>✎ Observações {cc.firstName}</span>
-                    <span style={{ fontSize: '0.64rem', color: '#6B8A6E', fontStyle: 'italic' }}>— sugestões e aprovações</span>
                   </div>
                   {hasUnreadAliny && !obsAlinyRead && (
                     <button onClick={handleMarkRead} style={{ fontSize: '0.65rem', color: '#6B8A6E', background: 'none', border: '1px solid rgba(107,138,110,0.35)', borderRadius: '6px', padding: '0.2rem 0.55rem', cursor: 'pointer', fontWeight: 600 }}>
@@ -391,22 +390,18 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                   <RichTextEditor value={obsAliny} onChange={v => updateAny('obsAliny', v)} placeholder={`Espaço para anotações ${cc.preposition} ${cc.firstName}...`} minHeight={72} />
                 </div>
 
-                {/* Approval buttons */}
+                {/* Apenas 2 botões: Aprovado / Ajustar */}
                 <div style={{ padding: '0.6rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                    {APPROVAL_ACTIONS.map(a => (
-                      <button key={a.type} onClick={() => handleApprovalAction(a)}
-                        style={{ flex: '1 1 auto', padding: '0.45rem 0.5rem', background: a.bg, border: `1px solid ${a.border}`, borderRadius: '8px', cursor: 'pointer', color: a.color, fontWeight: 700, fontSize: '0.76rem', whiteSpace: 'nowrap', transition: 'opacity 0.15s' }}
-                        onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-                        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-                      >
-                        {a.emoji} {a.type === 'copy_ok' ? 'Aprovar Copy' : a.type === 'arte_ok' ? 'Aprovar Arte' : a.type === 'ajuste_ok' ? 'Aprovar Ajuste' : 'Autorizar Postagem'}
-                      </button>
-                    ))}
-                    <button onClick={() => setPedirAjuste(v => !v)}
-                      style={{ flex: '1 1 auto', padding: '0.45rem 0.5rem', background: pedirAjuste ? 'rgba(229,160,13,0.18)' : 'rgba(229,160,13,0.08)', border: '1px solid rgba(229,160,13,0.35)', borderRadius: '8px', cursor: 'pointer', color: '#e5a00d', fontWeight: 700, fontSize: '0.76rem', whiteSpace: 'nowrap' }}
+                  <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    <button onClick={handleApprovar}
+                      style={{ flex: 1, padding: '0.55rem 0.75rem', background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.30)', borderRadius: '8px', cursor: 'pointer', color: '#22c55e', fontWeight: 700, fontSize: '0.82rem' }}
                     >
-                      ↩ Solicitar Ajuste
+                      ✓ Aprovado
+                    </button>
+                    <button onClick={() => setPedirAjuste(v => !v)}
+                      style={{ flex: 1, padding: '0.55rem 0.75rem', background: pedirAjuste ? 'rgba(229,160,13,0.18)' : 'rgba(229,160,13,0.08)', border: '1px solid rgba(229,160,13,0.35)', borderRadius: '8px', cursor: 'pointer', color: '#e5a00d', fontWeight: 700, fontSize: '0.82rem' }}
+                    >
+                      ↩ Ajustar
                     </button>
                   </div>
 
@@ -444,53 +439,6 @@ export default function PostSheet({ post, onClose }: PostSheetProps) {
                       )}
                     </div>
                   )}
-                </div>
-              </section>
-
-              {/* Attachments */}
-              <section style={{ marginTop: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Paperclip size={11} /> Anexos</span>
-                  <label style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Upload size={12} /> Adicionar
-                    <input type="file" multiple style={{ display: 'none' }} onChange={e => Array.from(e.target.files || []).forEach(f => handleFileUpload(f))} />
-                  </label>
-                </div>
-                {(attachmentsQuery.data as Attachment[] | undefined)?.map(att => (
-                  <div key={att.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', marginBottom: '0.35rem' }}>
-                    <a href={att.fileUrl} target="_blank" rel="noopener" style={{ fontSize: '0.8rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', textDecoration: 'none' }}>
-                      <ExternalLink size={12} style={{ color: 'var(--text-tertiary)' }} /> {att.fileName}
-                    </a>
-                    <button onClick={() => deleteAttachment.mutate({ id: att.id })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '0.1rem' }}><X size={13} /></button>
-                  </div>
-                ))}
-                {attachmentsQuery.data?.length === 0 && <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Nenhum anexo</p>}
-              </section>
-
-              {/* Comments */}
-              <section style={{ marginTop: '1.5rem' }}>
-                <span className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.75rem' }}>
-                  <MessageSquare size={11} /> Comentários ({commentsQuery.data?.length || 0})
-                </span>
-                <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', padding: '0.4rem 0.65rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    Gow Agency
-                  </div>
-                  <input type="text" placeholder="Escreva um comentário..." value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddComment()} style={{ flex: 1, fontSize: '0.82rem' }} />
-                  <button onClick={handleAddComment} disabled={!commentText.trim()} style={{ background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: commentText.trim() ? 1 : 0.4 }}>
-                    <SendIcon size={13} />
-                  </button>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  {(commentsQuery.data as Comment[] | undefined)?.map(c => (
-                    <div key={c.id} style={{ padding: '0.6rem 0.75rem', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>{c.authorName || 'Anônimo'}</span>
-                        <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{new Date(c.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{c.content}</p>
-                    </div>
-                  ))}
                 </div>
               </section>
 

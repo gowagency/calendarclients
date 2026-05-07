@@ -1287,6 +1287,18 @@ export default function Home({ client }: { client: ClientSlug }) {
     }
   }, [allPosts]);
 
+  // Open post automatically from ?post=ID in URL (shareable single-post link)
+  useEffect(() => {
+    if (allPosts.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('post');
+    if (!postId) return;
+    const target = allPosts.find(p => String(p.id) === postId);
+    if (target && (!selectedPost || selectedPost.id !== target.id)) {
+      setSelectedPost(target);
+    }
+  }, [allPosts]);
+
   // Filter by network
   const networkPosts = useMemo(() => {
     if (selectedNetwork === 'all') return allPosts;
