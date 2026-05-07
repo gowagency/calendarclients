@@ -144,7 +144,7 @@ export function getPilares(client: string): readonly { id: string; label: string
 
 /** Per-client display config (name, pronouns) for dynamic labels */
 export const CLIENT_CONFIG: Record<string, { firstName: string; fullName: string; pronoun: string; preposition: string; avatarUrl?: string }> = {
-  alinyrayze:  { firstName: 'Aliny',  fullName: 'Aliny Rayze',   pronoun: 'dela', preposition: 'da' },
+  alinyrayze:  { firstName: 'Aliny',  fullName: 'Aliny Rayze',   pronoun: 'dela', preposition: 'da', avatarUrl: 'https://vuotimmjmmzflwrxenad.supabase.co/storage/v1/object/public/uploads/logos/1774459147055-1776472328541.jpg' },
   juniorlopes: { firstName: 'Junior', fullName: 'Junior Lopes',  pronoun: 'dele', preposition: 'do' },
 };
 
