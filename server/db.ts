@@ -109,6 +109,20 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
     await db.execute(sql`
       UPDATE prod_tasks SET status = 'gravado' WHERE status = 'em_gravacao'
     `);
+
+    // Move Aliny posts on weekend 09 e 10/maio/2026 → sexta 08/maio/2026
+    {
+      const may08 = new Date("2026-05-08T12:00:00-03:00").getTime();
+      const may09Start = new Date("2026-05-09T00:00:00-03:00").getTime();
+      const may10End   = new Date("2026-05-10T23:59:59-03:00").getTime();
+      await db.execute(sql`
+        UPDATE posts SET scheduledDate = ${may08}
+        WHERE client = 'alinyrayze'
+          AND scheduledDate >= ${may09Start}
+          AND scheduledDate <= ${may10End}
+      `);
+    }
+
     console.log("[DB] prod_tasks table ready + approval status migrated");
   } catch (e) {
     console.log("[DB] Migration skipped:", (e as Error).message?.slice(0, 80));
@@ -229,7 +243,7 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
         },
         {
           socialNetwork: "instagram", formato: "Carrossel", status: "em_aprovacao",
-          scheduledDate: noon("2026-05-09"), sortOrder: 209,
+          scheduledDate: noon("2026-05-08"), sortOrder: 209,
           titulo: "Palestra para Mulheres",
           conteudo: "Carrossel de fotos, Captação para Reels com trilha sonora ou narração",
           legenda: null,

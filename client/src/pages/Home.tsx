@@ -1337,229 +1337,131 @@ export default function Home({ client }: { client: ClientSlug }) {
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
 
-      {/* ═══ HEADER ═══ */}
-      <header style={{
-        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
-        position: 'sticky', top: 0, zIndex: 50,
-        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-      }}>
-        <div style={{
-          maxWidth: '1280px', margin: '0 auto',
-          padding: '0 1rem',
-          display: 'flex', alignItems: 'center', gap: '0.75rem',
-          height: '56px',
-          minWidth: 0,
-        }}>
-          {/* Logo + name */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+      {/* ═══ HEADER — estilo Arkos: foto + nome + pendentes ═══ */}
+      {(() => {
+        const cc = CLIENT_CONFIG[client] ?? CLIENT_CONFIG.alinyrayze;
+        const pendentes = allPosts.filter(p => p.status === 'em_aprovacao').length;
+        const initials = cc.firstName.charAt(0).toUpperCase();
+        return (
+          <header style={{
+            background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+            position: 'sticky', top: 0, zIndex: 50,
+            backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          }}>
             <div style={{
-              width: 34, height: 34, borderRadius: '9px',
-              background: 'var(--text-primary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
+              maxWidth: '1280px', margin: '0 auto',
+              padding: '1rem 1.25rem',
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              minWidth: 0, flexWrap: 'wrap',
             }}>
-              <CalendarDays size={16} style={{ color: 'var(--bg)' }} />
-            </div>
-            <div>
-              <span style={{ fontFamily: 'DM Sans, system-ui', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em', display: 'block', lineHeight: 1.2 }}>
-                {CLIENT_LABELS[client]}
-              </span>
-              <span className="label" style={{ display: 'block', fontSize: '0.52rem', letterSpacing: '0.1em' }}>
-                Gow Agency
-              </span>
-            </div>
-          </div>
+              {/* Avatar */}
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: cc.avatarUrl ? `url(${cc.avatarUrl}) center/cover` : 'linear-gradient(135deg, #A07848 0%, #7B3A12 100%)',
+                color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.4rem', fontFamily: 'DM Sans, system-ui', fontWeight: 600,
+                flexShrink: 0, border: '1px solid var(--border)',
+                overflow: 'hidden',
+              }}>
+                {!cc.avatarUrl && initials}
+              </div>
 
-          {/* Divider */}
-          <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0, margin: '0 0.25rem' }} />
+              {/* Identidade */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span className="label" style={{ display: 'block', fontSize: '0.55rem', letterSpacing: '0.12em', marginBottom: '0.15rem' }}>
+                  Calendário Editorial
+                </span>
+                <span style={{
+                  display: 'block', fontFamily: 'DM Sans, system-ui',
+                  fontSize: '1.35rem', fontWeight: 600, lineHeight: 1.2,
+                  color: 'var(--text-primary)', letterSpacing: '-0.01em',
+                }}>
+                  {cc.fullName}
+                </span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
+                  por Gow Agency
+                </span>
+              </div>
 
-          {/* Page tabs — inline in header */}
-          <nav style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: 1, height: '100%', overflowX: 'auto' }}>
-            {([
-              { id: 'calendario'     as const, label: 'Calendário'     },
-              { id: 'editorial'      as const, label: 'Linha Editorial' },
-              { id: 'posicionamento' as const, label: 'Posicionamento'  },
-            ] satisfies { id: PageView; label: string }[]).map(p => (
+              {/* Aprovações pendentes */}
+              {pendentes > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.55rem',
+                  padding: '0.6rem 0.9rem',
+                  background: 'rgba(229,160,13,0.10)',
+                  border: '1px solid rgba(229,160,13,0.32)',
+                  borderRadius: '12px',
+                  flexShrink: 0,
+                }}>
+                  <span style={{
+                    fontSize: '1.4rem', fontWeight: 700, fontFamily: 'DM Sans, system-ui',
+                    color: '#e5a00d', lineHeight: 1,
+                  }}>
+                    {pendentes}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 500, color: '#a87a0a', lineHeight: 1.2 }}>
+                    {pendentes === 1 ? 'post aguardando' : 'posts aguardando'}<br />sua aprovação
+                  </span>
+                </div>
+              )}
+
+              {/* Theme toggle */}
               <button
-                key={p.id}
-                onClick={() => setPageView(p.id)}
+                onClick={toggleTheme}
+                title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
                 style={{
-                  padding: '0 0.85rem',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: pageView === p.id ? '2px solid var(--text-primary)' : '2px solid transparent',
-                  cursor: 'pointer',
-                  fontSize: '0.78rem',
-                  fontWeight: pageView === p.id ? 600 : 400,
-                  color: pageView === p.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                  transition: 'all 0.15s',
-                  whiteSpace: 'nowrap',
+                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                  borderRadius: '8px', padding: '0.5rem', cursor: 'pointer',
+                  color: 'var(--text-secondary)', display: 'flex', flexShrink: 0,
                 }}
               >
-                {p.label}
+                {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
               </button>
-            ))}
-          </nav>
+            </div>
 
-          {/* Theme toggle — far right */}
-          <button
-            onClick={toggleTheme}
-            title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
-            style={{
-              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-              borderRadius: '8px', padding: '0.4rem', cursor: 'pointer',
-              color: 'var(--text-secondary)', display: 'flex', flexShrink: 0,
-            }}
-          >
-            {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
-          </button>
-        </div>
-      </header>
+            {/* Page tabs */}
+            <nav style={{
+              maxWidth: '1280px', margin: '0 auto',
+              padding: '0 1.25rem',
+              display: 'flex', gap: 0, overflowX: 'auto',
+              borderTop: '1px solid var(--border)',
+            }}>
+              {([
+                { id: 'calendario'     as const, label: 'Calendário'     },
+                { id: 'editorial'      as const, label: 'Linha Editorial' },
+                { id: 'posicionamento' as const, label: 'Posicionamento'  },
+              ] satisfies { id: PageView; label: string }[]).map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setPageView(p.id)}
+                  style={{
+                    padding: '0.7rem 1rem',
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: pageView === p.id ? '2px solid var(--text-primary)' : '2px solid transparent',
+                    cursor: 'pointer',
+                    fontSize: '0.82rem',
+                    fontWeight: pageView === p.id ? 600 : 400,
+                    color: pageView === p.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                    transition: 'all 0.15s',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </nav>
+          </header>
+        );
+      })()}
 
       <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '0.75rem 1rem' }}>
 
         {pageView === 'calendario' && (
           <>
 
-        {/* ═══ NETWORK SELECTOR ═══ */}
-        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
-          {ACTIVE_NETWORKS.map(n => {
-            const active = selectedNetwork === n.id;
-            const color = n.id === 'all' ? 'var(--text-secondary)' : n.color;
-            return (
-              <button
-                key={n.id}
-                onClick={() => setSelectedNetwork(n.id as NetworkId)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.4rem',
-                  padding: '0.45rem 0.9rem', borderRadius: '20px', cursor: 'pointer',
-                  border: active ? `1.5px solid ${color}` : '1px solid var(--border)',
-                  background: active ? `${n.id === 'all' ? 'var(--bg-elevated-hover)' : color + '14'}` : 'var(--bg-elevated)',
-                  color: active ? (n.id === 'all' ? 'var(--text-primary)' : color) : 'var(--text-secondary)',
-                  fontSize: '0.82rem', fontWeight: active ? 600 : 400,
-                  flexShrink: 0, transition: 'all 0.15s',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {'Icon' in n && <n.Icon size={13} />}
-                {n.label}
-                <span style={{
-                  fontSize: '0.68rem', color: active ? color : 'var(--text-tertiary)',
-                  background: 'var(--bg-elevated)', borderRadius: '10px',
-                  padding: '0.05rem 0.35rem', fontWeight: 700,
-                }}>
-                  {n.id === 'all'
-                    ? allPosts.length
-                    : allPosts.filter(p => p.socialNetwork === n.id).length}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ═══ STATS + PROGRESS ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', marginBottom: '1.25rem' }}>
-
-          {/* Stat cards — clickable to switch view */}
-          {([
-            { label: 'Total',         value: stats.total,                                    icon: <LayoutGrid size={15} />,   color: 'var(--text-secondary)', view: 'calendario'   as View },
-            { label: 'Realizadas',    value: stats.postado,                                  icon: <CheckCircle2 size={15} />, color: '#22c55e',               view: 'postados'     as View },
-            { label: 'Agendadas',     value: stats.agendado,                                 icon: <CalendarDays size={15} />, color: '#5c7aff',               view: 'agendados'    as View },
-            { label: 'Em andamento',  value: stats.em_andamento + stats.em_aprovacao,        icon: <TrendingUp size={15} />,   color: '#e5a00d',               view: 'em_andamento' as View },
-          ] as const).map(({ label, value, icon, color, view }) => {
-            const isActive = activeView === view;
-            return (
-              <button
-                key={label}
-                onClick={() => setActiveView(view)}
-                className="glass-sm"
-                style={{
-                  padding: '1rem 1.25rem', textAlign: 'left', cursor: 'pointer',
-                  border: isActive ? `1.5px solid ${color}` : undefined,
-                  background: isActive ? `${color === 'var(--text-secondary)' ? 'var(--bg-elevated)' : color + '08'}` : undefined,
-                  outline: 'none', transition: 'all 0.15s',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span className="label" style={{ color: isActive ? color : undefined }}>{label}</span>
-                  <span style={{ color, opacity: isActive ? 1 : 0.7 }}>{icon}</span>
-                </div>
-                <span style={{
-                  fontFamily: 'DM Sans, system-ui', fontSize: '2rem', fontWeight: 300,
-                  color: isActive ? color : 'var(--text-primary)', letterSpacing: '-0.02em',
-                }}>
-                  {value}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Meta de dias úteis */}
-        {(() => {
-          const y = progressMonth.getFullYear(); const m = progressMonth.getMonth();
-          const totalDays = new Date(y, m + 1, 0).getDate();
-          let businessDays = 0;
-          for (let d = 1; d <= totalDays; d++) {
-            const dow = new Date(y, m, d).getDay();
-            if (dow >= 1 && dow <= 5) businessDays++;
-          }
-          const goal = 22;
-          const monthStart = new Date(y, m, 1).getTime();
-          const monthEnd = new Date(y, m + 1, 0, 23, 59, 59).getTime();
-          const posted = networkPosts.filter(p => p.status === 'postado' && p.scheduledDate && p.scheduledDate >= monthStart && p.scheduledDate <= monthEnd).length;
-          const pct = Math.min((posted / goal) * 100, 100);
-          const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-          const navMonth = (dir: number) => {
-            const d = new Date(progressMonth); d.setMonth(d.getMonth() + dir); setProgressMonth(d);
-          };
-          const isCurrentMonth = y === new Date().getFullYear() && m === new Date().getMonth();
-          return (
-            <div className="glass-sm" style={{ padding: '1.1rem 1.25rem', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', lineHeight: 1.3 }}>
-                    {posted} de {goal} posts realizados
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
-                    Objetivo: {goal} postagens · {businessDays} dias úteis
-                  </span>
-                </div>
-                {/* Month navigation */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <button onClick={() => navMonth(-1)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.25rem 0.4rem', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}>
-                    <ChevronLeft size={13} />
-                  </button>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500, minWidth: '110px', textAlign: 'center' }}>
-                    {monthNames[m]} {y}
-                  </span>
-                  <button onClick={() => navMonth(1)} disabled={isCurrentMonth} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.25rem 0.4rem', cursor: isCurrentMonth ? 'default' : 'pointer', color: isCurrentMonth ? 'var(--border-strong)' : 'var(--text-tertiary)', display: 'flex' }}>
-                    <ChevronRight size={13} />
-                  </button>
-                </div>
-              </div>
-              <div style={{ position: 'relative', height: '6px', background: 'var(--border-strong)', borderRadius: '6px' }}>
-                <motion.div
-                  key={`${y}-${m}`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  style={{ height: '100%', borderRadius: '6px', position: 'absolute', background: pct >= 100 ? '#22c55e' : pct >= 60 ? '#5c7aff' : '#e5a00d' }}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-                  {posted === 0 ? 'Nenhum post publicado neste mês' : `${goal - posted > 0 ? `Faltam ${goal - posted} posts` : '🎉 Meta atingida!'}`}
-                </span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-                  {Math.round(pct)}%
-                </span>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ═══ VIEWS ═══ */}
+        {/* ═══ VIEWS — direto pro calendário ═══ */}
         <AnimatePresence mode="wait">
           {activeView === 'calendario' && (
             <motion.div
