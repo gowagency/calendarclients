@@ -1367,44 +1367,41 @@ export default function Home({ client }: { client: ClientSlug }) {
                 {!cc.avatarUrl && initials}
               </div>
 
-              {/* Identidade */}
+              {/* Identidade + pendentes inline */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span className="label" style={{ display: 'block', fontSize: '0.55rem', letterSpacing: '0.12em', marginBottom: '0.15rem' }}>
                   Calendário Editorial
                 </span>
-                <span style={{
-                  display: 'block', fontFamily: 'DM Sans, system-ui',
-                  fontSize: '1.35rem', fontWeight: 600, lineHeight: 1.2,
-                  color: 'var(--text-primary)', letterSpacing: '-0.01em',
-                }}>
-                  {cc.fullName}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontFamily: 'DM Sans, system-ui',
+                    fontSize: '1.35rem', fontWeight: 600, lineHeight: 1.2,
+                    color: 'var(--text-primary)', letterSpacing: '-0.01em',
+                  }}>
+                    {cc.fullName}
+                  </span>
+                  {pendentes > 0 && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                      padding: '0.22rem 0.55rem',
+                      background: 'rgba(229,160,13,0.12)',
+                      border: '1px solid rgba(229,160,13,0.32)',
+                      borderRadius: '20px',
+                      fontSize: '0.72rem', fontWeight: 600,
+                      color: '#a87a0a',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#e5a00d', fontFamily: 'DM Sans, system-ui' }}>
+                        {pendentes}
+                      </span>
+                      {pendentes === 1 ? 'aguardando aprovação' : 'aguardando aprovação'}
+                    </span>
+                  )}
+                </div>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
                   por Gow Agency
                 </span>
               </div>
-
-              {/* Aprovações pendentes */}
-              {pendentes > 0 && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '0.55rem',
-                  padding: '0.6rem 0.9rem',
-                  background: 'rgba(229,160,13,0.10)',
-                  border: '1px solid rgba(229,160,13,0.32)',
-                  borderRadius: '12px',
-                  flexShrink: 0,
-                }}>
-                  <span style={{
-                    fontSize: '1.4rem', fontWeight: 700, fontFamily: 'DM Sans, system-ui',
-                    color: '#e5a00d', lineHeight: 1,
-                  }}>
-                    {pendentes}
-                  </span>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 500, color: '#a87a0a', lineHeight: 1.2 }}>
-                    {pendentes === 1 ? 'post aguardando' : 'posts aguardando'}<br />sua aprovação
-                  </span>
-                </div>
-              )}
 
               {/* Theme toggle */}
               <button
