@@ -6,6 +6,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { calendarApiRouter } from "../routes/calendar-api";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -36,6 +37,8 @@ async function startServer() {
     }
     next();
   });
+
+  app.use(calendarApiRouter);
 
   app.use(
     "/api/trpc",
